@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator dbml {
+  provider = "prisma-dbml-generator"
+}
+
+model Account {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  username        String
+  email           String
+  password        String
+  AccountStatus   AccountStatus   @default(PENDING)
+  accountRoleId   String          @db.ObjectId
+  AccountRole     AccountRole     @relation(fields: [accountRoleId], references: [id])
+  AccountRoleType AccountRoleType @default(GUEST)
+  accountInfoId   String?         @db.ObjectId
+  AccountInfo     AccountInfo?    @relation(fields: [accountInfoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  Faculty      Faculty[]      @relation("createdBy")
+  FacultyAdmin FacultyAdmin[]
+  Article      Article[]
+  Event        Event[]
+}
+
+model AccountInfo {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String?
+  avatarId    String?  @db.ObjectId
+  Avatar      File?    @relation(fields: [avatarId], references: [id])
+  dateOfBirth String?
+  facultyId   String?  @db.ObjectId
+  Faculty     Faculty? @relation("belongTO", fields: [facultyId], references: [id], onDelete: SetNull, onUpdate: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Account   Account[]
+}
+
+model AccountRole {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  permissions String
+  Status      Status @default(ACTIVE)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Account   Account[]
+}
+
+model Faculty {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  facultyCode String   @unique
+  avatarId    String?  @db.ObjectId
+  Avatar      File?    @relation(fields: [avatarId], references: [id])
+  createdById String?  @db.ObjectId
+  CreatedBy   Account? @relation("createdBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: SetNull)
+  Status      Status   @default(ACTIVE)
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  FacultyAdmin FacultyAdmin[]
+  Article      Article[]
+  AccountInfo  AccountInfo[]  @relation("belongTO")
+}
+
+model FacultyAdmin {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  accountId   String      @db.ObjectId
+  Account     Account     @relation(fields: [accountId], references: [id])
+  facultyId   String      @db.ObjectId
+  Faculty     Faculty     @relation(fields: [facultyId], references: [id])
+  FacultyRole FacultyRole @default(MEMBER)
+  Status      Status      @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AccountRoleType {
+  ADMIN
+  STUDENT
+  GUEST
+}
+
+model Article {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  documentId     String        @db.ObjectId
+  Document       File          @relation(fields: [documentId], references: [id])
+  eventId        String        @db.ObjectId
+  Event          Event         @relation(fields: [eventId], references: [id])
+  facultyId      String        @db.ObjectId
+  Faculty        Faculty       @relation(fields: [facultyId], references: [id])
+  ArticleStatus  ArticleStatus @default(PENDING)
+  supervisedById String?       @db.ObjectId
+  SupervisedBy   Account?      @relation(fields: [supervisedById], references: [id])
+
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  ArticleLog ArticleLog[]
+}
+
+model ArticleLog {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  articleId        String           @db.ObjectId
+  Article          Article          @relation(fields: [articleId], references: [id])
+  message          String?
+  ArticleLogStatus ArticleLogStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  title      String
+  hostedById String  @db.ObjectId
+  HostedBy   Account @relation(fields: [hostedById], references: [id])
+
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Article   Article[]
+}
+
+model File {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  path String
+  type String
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  Faculty     Faculty[]
+  Article     Article[]
+  AccountInfo AccountInfo[]
+}
+
+enum ArticleLogStatus {
+  PENDING
+  ASSIGNED
+  REJECTED
+  NEED_ACTION
+  APPROVED
+}
+
+enum ArticleStatus {
+  PENDING
+  APPROVED
+  NEED_ACTION
+  REJECTED
+}
+
+enum AccountStatus {
+  ACTIVE
+  PENDING
+  INVITED
+  SUSPENDED
+  PERMANENTLY_DELETED
+}
+
+enum Status {
+  ACTIVE
+  SUSPENDED
+  PERMANENTLY_DELETED
+}
+
+enum FacultyRole {
+  ADMIN
+  MEMBER
+}

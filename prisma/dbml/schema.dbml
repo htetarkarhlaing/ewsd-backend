@@ -1,0 +1,194 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table Account {
+  id String [pk]
+  username String [not null]
+  email String [not null]
+  password String [not null]
+  AccountStatus AccountStatus [not null, default: 'PENDING']
+  accountRoleId String [not null]
+  AccountRole AccountRole [not null]
+  AccountRoleType AccountRoleType [not null, default: 'GUEST']
+  accountInfoId String
+  AccountInfo AccountInfo
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  Faculty Faculty [not null]
+  FacultyAdmin FacultyAdmin [not null]
+  Article Article [not null]
+  Event Event [not null]
+}
+
+Table AccountInfo {
+  id String [pk]
+  name String
+  avatarId String
+  Avatar File
+  dateOfBirth String
+  facultyId String
+  Faculty Faculty
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  Account Account [not null]
+}
+
+Table AccountRole {
+  id String [pk]
+  name String [not null]
+  description String [not null]
+  permissions String [not null]
+  Status Status [not null, default: 'ACTIVE']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  Account Account [not null]
+}
+
+Table Faculty {
+  id String [pk]
+  name String [not null]
+  description String [not null]
+  facultyCode String [unique, not null]
+  avatarId String
+  Avatar File
+  createdById String
+  CreatedBy Account
+  Status Status [not null, default: 'ACTIVE']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  FacultyAdmin FacultyAdmin [not null]
+  Article Article [not null]
+  AccountInfo AccountInfo [not null]
+}
+
+Table FacultyAdmin {
+  id String [pk]
+  accountId String [not null]
+  Account Account [not null]
+  facultyId String [not null]
+  Faculty Faculty [not null]
+  FacultyRole FacultyRole [not null, default: 'MEMBER']
+  Status Status [not null, default: 'ACTIVE']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table Article {
+  id String [pk]
+  title String [not null]
+  documentId String [not null]
+  Document File [not null]
+  eventId String [not null]
+  Event Event [not null]
+  facultyId String [not null]
+  Faculty Faculty [not null]
+  ArticleStatus ArticleStatus [not null, default: 'PENDING']
+  supervisedById String
+  SupervisedBy Account
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  ArticleLog ArticleLog [not null]
+}
+
+Table ArticleLog {
+  id String [pk]
+  articleId String [not null]
+  Article Article [not null]
+  message String
+  ArticleLogStatus ArticleLogStatus [not null, default: 'PENDING']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table Event {
+  id String [pk]
+  title String [not null]
+  hostedById String [not null]
+  HostedBy Account [not null]
+  startDate DateTime [default: `now()`, not null]
+  endDate DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  Article Article [not null]
+}
+
+Table File {
+  id String [pk]
+  name String [not null]
+  path String [not null]
+  type String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  Faculty Faculty [not null]
+  Article Article [not null]
+  AccountInfo AccountInfo [not null]
+}
+
+Enum AccountRoleType {
+  ADMIN
+  STUDENT
+  GUEST
+}
+
+Enum ArticleLogStatus {
+  PENDING
+  ASSIGNED
+  REJECTED
+  NEED_ACTION
+  APPROVED
+}
+
+Enum ArticleStatus {
+  PENDING
+  APPROVED
+  NEED_ACTION
+  REJECTED
+}
+
+Enum AccountStatus {
+  ACTIVE
+  PENDING
+  INVITED
+  SUSPENDED
+  PERMANENTLY_DELETED
+}
+
+Enum Status {
+  ACTIVE
+  SUSPENDED
+  PERMANENTLY_DELETED
+}
+
+Enum FacultyRole {
+  ADMIN
+  MEMBER
+}
+
+Ref: Account.accountRoleId > AccountRole.id
+
+Ref: Account.accountInfoId > AccountInfo.id [delete: No Action]
+
+Ref: AccountInfo.avatarId > File.id
+
+Ref: AccountInfo.facultyId > Faculty.id [delete: Set Null]
+
+Ref: Faculty.avatarId > File.id
+
+Ref: Faculty.createdById > Account.id [delete: Set Null]
+
+Ref: FacultyAdmin.accountId > Account.id
+
+Ref: FacultyAdmin.facultyId > Faculty.id
+
+Ref: Article.documentId > File.id
+
+Ref: Article.eventId > Event.id
+
+Ref: Article.facultyId > Faculty.id
+
+Ref: Article.supervisedById > Account.id
+
+Ref: ArticleLog.articleId > Article.id
+
+Ref: Event.hostedById > Account.id
