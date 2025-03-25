@@ -9,6 +9,9 @@ import { AuthModule } from './auth/auth.module';
 import * as path from 'path';
 import { ConfigModule } from '@nestjs/config';
 import { RoleModule } from './role/role.module';
+import { FacultyModule } from './faculty/faculty.module';
+import { EventModule } from './event/event.module';
+import { AccountModule } from './account/account.module';
 
 @Module({
   imports: [
@@ -37,6 +40,9 @@ import { RoleModule } from './role/role.module';
     }),
     AuthModule,
     RoleModule,
+    FacultyModule,
+    EventModule,
+    AccountModule,
   ],
   controllers: [AppController],
   providers: [AppService],

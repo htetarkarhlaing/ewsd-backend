@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 declare const module: any;
 
 import { NestFactory, Reflector } from '@nestjs/core';
@@ -27,18 +25,19 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   const config = new DocumentBuilder()
-    .setTitle('One site blog')
-    .setDescription('One site blog API description')
+    .setTitle('Apex University')
+    .setDescription('Apex University API description')
     .setVersion('0.0.1')
     .addTag('Public')
     .addBearerAuth()
     .addServer(`http://localhost:${process.env.PORT ?? 3000}`, 'Local')
+    .addServer(`https://ewsd.visionx.com.mm`, 'Production')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   const theme = new SwaggerTheme();
 
   SwaggerModule.setup('docs', app, documentFactory, {
-    customCss: theme.getBuffer(SwaggerThemeNameEnum.NORD_DARK),
+    customCss: theme.getBuffer(SwaggerThemeNameEnum.DRACULA),
   });
 
   await app.listen(process.env.PORT ?? 3000);

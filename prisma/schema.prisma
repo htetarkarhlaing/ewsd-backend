@@ -17,8 +17,8 @@ model Account {
   email           String
   password        String
   AccountStatus   AccountStatus   @default(PENDING)
-  accountRoleId   String          @db.ObjectId
-  AccountRole     AccountRole     @relation(fields: [accountRoleId], references: [id])
+  accountRoleId   String?          @db.ObjectId
+  AccountRole     AccountRole?     @relation(fields: [accountRoleId], references: [id])
   AccountRoleType AccountRoleType @default(GUEST)
   accountInfoId   String?         @db.ObjectId
   AccountInfo     AccountInfo?    @relation(fields: [accountInfoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -29,16 +29,20 @@ model Account {
   FacultyAdmin FacultyAdmin[]
   Article      Article[]
   Event        Event[]
+  Nationality  Nationality[]  @relation("createdBy")
 }
 
 model AccountInfo {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String?
-  avatarId    String?  @db.ObjectId
-  Avatar      File?    @relation(fields: [avatarId], references: [id])
-  dateOfBirth String?
-  facultyId   String?  @db.ObjectId
-  Faculty     Faculty? @relation("belongTO", fields: [facultyId], references: [id], onDelete: SetNull, onUpdate: SetNull)
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  avatarId      String?      @db.ObjectId
+  Avatar        File?        @relation(fields: [avatarId], references: [id])
+  dateOfBirth   String?
+  address       String?
+  facultyId     String?      @db.ObjectId
+  Faculty       Faculty?     @relation("belongTO", fields: [facultyId], references: [id], onDelete: SetNull, onUpdate: SetNull)
+  nationalityId String?      @db.ObjectId
+  Nationality   Nationality? @relation("belongTO", fields: [nationalityId], references: [id], onDelete: SetNull, onUpdate: SetNull)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -128,6 +132,7 @@ model Event {
   title      String
   hostedById String  @db.ObjectId
   HostedBy   Account @relation(fields: [hostedById], references: [id])
+  Status     Status  @default(ACTIVE)
 
   startDate DateTime  @default(now())
   endDate   DateTime?
@@ -147,6 +152,21 @@ model File {
   Faculty     Faculty[]
   Article     Article[]
   AccountInfo AccountInfo[]
+  Nationality Nationality[]
+}
+
+model Nationality {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  avatarId    String?  @db.ObjectId
+  Avatar      File?    @relation(fields: [avatarId], references: [id])
+  Status      Status   @default(ACTIVE)
+  createdById String?  @db.ObjectId
+  CreatedBy   Account? @relation("createdBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: SetNull)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  AccountInfo AccountInfo[] @relation("belongTO")
 }
 
 enum ArticleLogStatus {
