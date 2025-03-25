@@ -8,8 +8,8 @@ Table Account {
   email String [not null]
   password String [not null]
   AccountStatus AccountStatus [not null, default: 'PENDING']
-  accountRoleId String [not null]
-  AccountRole AccountRole [not null]
+  accountRoleId String
+  AccountRole AccountRole
   AccountRoleType AccountRoleType [not null, default: 'GUEST']
   accountInfoId String
   AccountInfo AccountInfo
@@ -19,6 +19,7 @@ Table Account {
   FacultyAdmin FacultyAdmin [not null]
   Article Article [not null]
   Event Event [not null]
+  Nationality Nationality [not null]
 }
 
 Table AccountInfo {
@@ -27,8 +28,11 @@ Table AccountInfo {
   avatarId String
   Avatar File
   dateOfBirth String
+  address String
   facultyId String
   Faculty Faculty
+  nationalityId String
+  Nationality Nationality
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   Account Account [not null]
@@ -106,6 +110,7 @@ Table Event {
   title String [not null]
   hostedById String [not null]
   HostedBy Account [not null]
+  Status Status [not null, default: 'ACTIVE']
   startDate DateTime [default: `now()`, not null]
   endDate DateTime
   createdAt DateTime [default: `now()`, not null]
@@ -123,6 +128,30 @@ Table File {
   Faculty Faculty [not null]
   Article Article [not null]
   AccountInfo AccountInfo [not null]
+  Nationality Nationality [not null]
+}
+
+Table Nationality {
+  id String [pk]
+  name String [not null]
+  avatarId String
+  Avatar File
+  Status Status [not null, default: 'ACTIVE']
+  createdById String
+  CreatedBy Account
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  AccountInfo AccountInfo [not null]
+}
+
+Table createdBy {
+  facultyId String [ref: > Faculty.id]
+  nationalityId String [ref: > Nationality.id]
+}
+
+Table belongTO {
+  accountinfoId String [ref: > AccountInfo.id]
+  accountinfoId String [ref: > AccountInfo.id]
 }
 
 Enum AccountRoleType {
@@ -173,6 +202,8 @@ Ref: AccountInfo.avatarId > File.id
 
 Ref: AccountInfo.facultyId > Faculty.id [delete: Set Null]
 
+Ref: AccountInfo.nationalityId > Nationality.id [delete: Set Null]
+
 Ref: Faculty.avatarId > File.id
 
 Ref: Faculty.createdById > Account.id [delete: Set Null]
@@ -192,3 +223,7 @@ Ref: Article.supervisedById > Account.id
 Ref: ArticleLog.articleId > Article.id
 
 Ref: Event.hostedById > Account.id
+
+Ref: Nationality.avatarId > File.id
+
+Ref: Nationality.createdById > Account.id [delete: Set Null]

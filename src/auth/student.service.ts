@@ -1,10 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { compareSync } from 'bcrypt';
+import { compareSync, genSaltSync, hashSync } from 'bcrypt';
 import { Account } from '@prisma/client';
 import { unset } from 'lodash';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { studentRegisterDto } from './dto';
 
 @Injectable()
 export class StudentService {
@@ -113,6 +114,57 @@ export class StudentService {
         throw err;
       }
 
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async registerService(data: studentRegisterDto) {
+    try {
+      const existingStudent = await this.prisma.account.findFirst({
+        where: {
+          AND: [
+            {
+              email: data.email,
+            },
+            {
+              AccountRoleType: 'STUDENT',
+            },
+          ],
+        },
+      });
+      if (existingStudent && existingStudent.id) {
+        throw new HttpException('Account already exists', HttpStatus.CONFLICT);
+      }
+      if (existingStudent && existingStudent.AccountStatus === 'PENDING') {
+        throw new HttpException(
+          'Account already exists and under admin review',
+          HttpStatus.CONFLICT,
+        );
+      }
+      if (existingStudent && existingStudent.AccountStatus === 'SUSPENDED') {
+        throw new HttpException(
+          'Account already suspended by admin. Please contact help and support',
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      const createdStudent = await this.prisma.account.create({
+        data: {
+          email: data.email,
+          username: data.username,
+          password: hashSync(data.password, genSaltSync(10)),
+          AccountRoleType: 'STUDENT',
+          AccountStatus: 'PENDING',
+        },
+      });
+      return createdStudent;
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,

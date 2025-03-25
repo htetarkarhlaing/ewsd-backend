@@ -1,5 +1,7 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param, Res } from '@nestjs/common';
 import { AppService } from './app.service';
+import { SkipInterceptor } from './helper';
+import { Response } from 'express';
 
 @Controller()
 export class AppController {
@@ -8,5 +10,11 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Get('files/:fileName')
+  @SkipInterceptor()
+  seeUploadedFile(@Param('fileName') name: string, @Res() res: Response) {
+    return res.sendFile(name, { root: `${__dirname}/../uploads/` });
   }
 }
