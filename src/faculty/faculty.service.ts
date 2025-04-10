@@ -62,7 +62,7 @@ export class FacultyService {
         },
       });
 
-      return { data: facultyList };
+      return facultyList;
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;

@@ -1,5 +1,4 @@
 import {
-  Body,
   Controller,
   Get,
   HttpException,
@@ -10,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { LoginDTO, studentRegisterDto } from './dto';
+import { LoginDTO } from './dto';
 import { Account } from '@prisma/client';
 import { Request } from 'express';
 import { AdminLocalAuthGuard } from './guards/local-admin-auth.guard';
@@ -100,34 +99,6 @@ export class AuthController {
       return {
         data: studentCredentials,
         message: 'Student login successful',
-      };
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new HttpException(
-        'Internal server error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @ApiOperation({
-    summary: 'Student login',
-    description: 'Both username and email can be used as login credential',
-  })
-  @ApiBody({
-    type: studentRegisterDto,
-  })
-  @Post('student/register')
-  async studentRegister(@Body() student: studentRegisterDto) {
-    try {
-      const registeredStudent =
-        await this.studentService.registerService(student);
-      return {
-        data: registeredStudent,
-        message: 'Student registration successful please wait for approval',
       };
     } catch (error) {
       if (error instanceof HttpException) {

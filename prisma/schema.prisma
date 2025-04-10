@@ -17,8 +17,8 @@ model Account {
   email           String
   password        String
   AccountStatus   AccountStatus   @default(PENDING)
-  accountRoleId   String?          @db.ObjectId
-  AccountRole     AccountRole?     @relation(fields: [accountRoleId], references: [id])
+  accountRoleId   String?         @db.ObjectId
+  AccountRole     AccountRole?    @relation(fields: [accountRoleId], references: [id])
   AccountRoleType AccountRoleType @default(GUEST)
   accountInfoId   String?         @db.ObjectId
   AccountInfo     AccountInfo?    @relation(fields: [accountInfoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -35,6 +35,7 @@ model Account {
 model AccountInfo {
   id            String       @id @default(auto()) @map("_id") @db.ObjectId
   name          String?
+  studentId     String?
   avatarId      String?      @db.ObjectId
   Avatar        File?        @relation(fields: [avatarId], references: [id])
   dateOfBirth   String?

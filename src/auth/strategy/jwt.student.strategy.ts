@@ -13,7 +13,7 @@ export class JwtStudentStrategy extends PassportStrategy(
   constructor(private readonly studentService: StudentService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_ACCESS_TOKEN_ADMIN as string,
+      secretOrKey: process.env.JWT_ACCESS_TOKEN_STUDENT as string,
     });
   }
 

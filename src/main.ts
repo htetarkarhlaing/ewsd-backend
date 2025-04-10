@@ -6,6 +6,7 @@ import { ConsoleLogger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { SwaggerTheme, SwaggerThemeNameEnum } from 'swagger-themes';
 import { ResponseInterceptor } from './helper';
+import { AllExceptionsFilter } from './helper/All-exception.filterer';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -21,6 +22,7 @@ async function bootstrap() {
     methods: '*',
   });
   app.enableShutdownHooks();
+  app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(new ResponseInterceptor(new Reflector())); // * success response formatter
   app.useGlobalPipes(new ValidationPipe());
 

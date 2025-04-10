@@ -26,6 +26,9 @@ export class studentLocalStrategy extends PassportStrategy(
       }
       return admin;
     } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
       throw new HttpException(
         JSON.stringify(err),
         HttpStatus.INTERNAL_SERVER_ERROR,

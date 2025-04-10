@@ -25,6 +25,7 @@ Table Account {
 Table AccountInfo {
   id String [pk]
   name String
+  studentId String
   avatarId String
   Avatar File
   dateOfBirth String
