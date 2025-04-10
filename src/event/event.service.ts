@@ -3,7 +3,7 @@ import { Request } from 'express';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { eventCreateDTO } from './dto';
 import { Account } from '@prisma/client';
-import moment from 'moment';
+import * as moment from 'moment';
 
 @Injectable()
 export class EventService {
@@ -11,7 +11,7 @@ export class EventService {
 
   async getEventList(namespace: 'ADMIN' | 'PUBLIC') {
     try {
-      const facultyList = await this.prisma.event.findMany({
+      const eventList = await this.prisma.event.findMany({
         where: {
           ...(namespace === 'ADMIN'
             ? {
@@ -35,7 +35,7 @@ export class EventService {
         },
       });
 
-      return { data: facultyList };
+      return eventList;
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;

@@ -23,7 +23,7 @@ export class StudentService {
           id,
         },
         {
-          secret: this.configService.get('JWT_ACCESS_TOKEN_ADMIN'),
+          secret: this.configService.get('JWT_ACCESS_TOKEN_STUDENT'),
           expiresIn: '7d',
         },
       ),
@@ -32,7 +32,7 @@ export class StudentService {
           id: id,
         },
         {
-          secret: this.configService.get('JWT_REFRESH_TOKEN_ADMIN'),
+          secret: this.configService.get('JWT_REFRESH_TOKEN_STUDENT'),
         },
       ),
     ]);
@@ -71,6 +71,13 @@ export class StudentService {
 
     if (!student) {
       throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (student?.AccountStatus === 'PENDING') {
+      throw new HttpException(
+        'This account is under review. Please wait for admin approval.',
+        423,
+      );
     }
 
     if (
