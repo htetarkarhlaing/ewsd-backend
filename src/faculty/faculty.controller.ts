@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -34,9 +35,22 @@ export class FacultyController {
   @UseGuards(AdminJWTAuthGuard)
   @ApiBearerAuth()
   @Get('list-admin')
-  async adminFacultyListFetcher() {
+  async adminFacultyListFetcher(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status')
+    status: 'ALL' | 'ACTIVE' | 'SUSPENDED',
+    @Query('search')
+    search?: string,
+  ) {
     try {
-      const facultyList = await this.facultyService.getFacultyList('ADMIN');
+      const facultyList = await this.facultyService.getFacultyList(
+        'ADMIN',
+        parseInt(page.toString()),
+        parseInt(limit.toString()),
+        status,
+        search,
+      );
       return {
         data: facultyList,
         message: 'Admin faculty list fetched successfully',
@@ -54,14 +68,48 @@ export class FacultyController {
 
   @ApiOperation({ summary: 'Faculty list provider' })
   @Get('list-public')
-  async facultyListFetcher() {
+  async facultyListPaginatedFetcher(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('search')
+    search?: string,
+  ) {
     try {
-      const facultyList = await this.facultyService.getFacultyList('PUBLIC');
+      const facultyList = await this.facultyService.getFacultyList(
+        'PUBLIC',
+        parseInt(page.toString()),
+        parseInt(limit.toString()),
+        undefined,
+        search,
+      );
       return {
         data: facultyList,
         message: 'Faculty list fetched successfully',
       };
     } catch (err) {
+      console.log(err);
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Faculty list without pagination' })
+  @Get('list-public-no-pagination')
+  async facultyListFetcher() {
+    try {
+      const facultyList =
+        await this.facultyService.getNonPaginatedFacultyList();
+      return {
+        data: facultyList,
+        message: 'Faculty list fetched successfully',
+      };
+    } catch (err) {
+      console.log(err);
       if (err instanceof HttpException) {
         throw err;
       }
@@ -92,7 +140,7 @@ export class FacultyController {
       }),
     }),
   )
-  async createSocialLink(
+  async createFaculty(
     @Body() data: facultyCreateDTO,
     @Req() req: Request,
     @UploadedFile() image: Express.Multer.File,

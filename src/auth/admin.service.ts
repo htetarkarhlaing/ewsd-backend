@@ -83,6 +83,16 @@ export class AdminService {
     }
 
     if (admin && compareSync(password, admin.password)) {
+      if (admin.AccountStatus === 'INVITED') {
+        await this.prisma.account.update({
+          where: {
+            id: admin.id,
+          },
+          data: {
+            AccountStatus: 'ACTIVE',
+          },
+        });
+      }
       const result = admin;
       unset(admin, 'password');
       return result;
@@ -176,6 +186,15 @@ export class AdminService {
             },
           },
           AccountRole: true,
+          FacultyAdmin: {
+            include: {
+              Faculty: {
+                include: {
+                  Avatar: true,
+                },
+              },
+            },
+          },
         },
       });
       return adminInfo;

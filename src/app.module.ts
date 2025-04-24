@@ -13,6 +13,7 @@ import { FacultyModule } from './faculty/faculty.module';
 import { EventModule } from './event/event.module';
 import { AccountModule } from './account/account.module';
 import { NationModule } from './nation/nation.module';
+import { ArticleModule } from './article/article.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { NationModule } from './nation/nation.module';
     EventModule,
     AccountModule,
     NationModule,
+    ArticleModule,
   ],
   controllers: [AppController],
   providers: [AppService],

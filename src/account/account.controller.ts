@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -17,7 +18,8 @@ import {
 } from '@nestjs/swagger';
 import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
 import { AccountService } from './account.service';
-import { StudentRegisterDTO } from './dto';
+import { AdminInviteDTO, StudentRegisterDTO } from './dto';
+import { Request } from 'express';
 
 @ApiTags('Account')
 @Controller('account')
@@ -38,6 +40,30 @@ export class AccountController {
         data: registeredStudent,
         message:
           'Student account register submitted successfully. Please wait for admin approval.',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'user invitation handler' })
+  @Post('user-invite')
+  @ApiBody({
+    type: AdminInviteDTO,
+    description: 'User invite data',
+  })
+  async userInvitationHandler(@Body() data: AdminInviteDTO) {
+    try {
+      const invitedUser = await this.accountService.inviteAdmin(data);
+      return {
+        data: invitedUser,
+        message: 'User invitation mail sent successfully.',
       };
     } catch (err) {
       if (err instanceof HttpException) {
@@ -85,16 +111,21 @@ export class AccountController {
   })
   @Get('admin-list')
   async adminAccountListFetcher(
+    @Req() req: Request,
     @Query('page') page: string,
     @Query('limit') limit: string,
+    @Query('status')
+    status: 'ALL' | 'ACTIVE' | 'INVITED' | 'SUSPENDED',
     @Query('search')
     search?: string,
   ) {
     try {
       const adminList = await this.accountService.getAccountList(
         'ADMIN',
+        req,
         parseInt(page) || 1,
         parseInt(limit) || 10,
+        status,
         search,
       );
       return {
@@ -117,16 +148,23 @@ export class AccountController {
   @ApiBearerAuth()
   @Get('student-list')
   async studentAccountListFetcher(
+    @Req() req: Request,
     @Query('page') page: string,
     @Query('limit') limit: string,
+    @Query('status')
+    status: 'ALL' | 'ACTIVE' | 'PENDING' | 'INVITED' | 'REJECTED' | 'SUSPENDED',
     @Query('search') search?: string,
+    @Query('facultyId') facultyId?: string,
   ) {
     try {
       const studentList = await this.accountService.getAccountList(
         'STUDENT',
+        req,
         parseInt(page) || 1,
         parseInt(limit) || 10,
+        status,
         search,
+        facultyId,
       );
       return {
         data: studentList,
@@ -147,12 +185,49 @@ export class AccountController {
   @UseGuards(AdminJWTAuthGuard)
   @ApiBearerAuth()
   @Get('guest-list')
-  async guestAccountListFetcher() {
+  async guestAccountListFetcher(
+    @Req() req: Request,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status')
+    status: 'ALL' | 'ACTIVE' | 'PENDING' | 'INVITED' | 'SUSPENDED',
+    @Query('search')
+    search?: string,
+  ) {
     try {
-      const guestList = await this.accountService.getAccountList('GUEST');
+      const guestList = await this.accountService.getAccountList(
+        'GUEST',
+        req,
+        parseInt(page) || 1,
+        parseInt(limit) || 10,
+        status,
+        search,
+      );
       return {
         data: guestList,
         message: 'Guest account list fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Admin role list provider' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @Get('role-list')
+  async getAccountRole() {
+    try {
+      const roleList = await this.accountService.getAccountRole();
+      return {
+        data: roleList,
+        message: 'Account role list fetched successfully',
       };
     } catch (err) {
       if (err instanceof HttpException) {
