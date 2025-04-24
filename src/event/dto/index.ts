@@ -10,7 +10,20 @@ export class eventCreateDTO {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
+  description: string;
+
+  @ApiProperty({ type: 'string', format: 'binary', required: true })
+  image: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
   startDate: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  closureDate: string;
 
   @ApiProperty()
   @IsString()

@@ -18,16 +18,13 @@ export class FacultyService {
       code = words.map((word) => word.charAt(0).toUpperCase()).join('');
     }
 
-    // Generate a random 4-digit number
     const result = Math.floor(1000 + Math.random() * 9000).toString();
     const facultyCode = code + result;
 
-    // Check if the generated code already exists
     const existingLoginCode = await this.prisma.faculty.findFirst({
       where: { facultyCode },
     });
 
-    // If code exists, regenerate (recursive call)
     if (existingLoginCode) {
       return this.facultyCodeGenerator(name);
     }
@@ -35,17 +32,102 @@ export class FacultyService {
     return facultyCode;
   }
 
-  async getFacultyList(namespace: 'ADMIN' | 'PUBLIC') {
+  async getFacultyList(
+    namespace: 'ADMIN' | 'PUBLIC',
+    page = 1,
+    limit = 10,
+    status?: 'ALL' | 'ACTIVE' | 'SUSPENDED',
+    search?: string,
+  ) {
+    try {
+      const skip = (page - 1) * limit;
+
+      const [facultyList, total] = await Promise.all([
+        await this.prisma.faculty.findMany({
+          where: {
+            ...(namespace === 'ADMIN'
+              ? {
+                  Status: status !== 'ALL' ? status : 'ACTIVE',
+                  ...(search && {
+                    OR: [
+                      {
+                        name: {
+                          contains: search,
+                          mode: 'insensitive',
+                        },
+                      },
+                    ],
+                  }),
+                }
+              : {
+                  Status: 'ACTIVE',
+                }),
+          },
+          include: {
+            CreatedBy: {
+              include: {
+                AccountRole: true,
+                AccountInfo: {
+                  include: {
+                    Avatar: true,
+                  },
+                },
+              },
+            },
+            Avatar: true,
+          },
+          skip,
+          take: limit,
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+        await this.prisma.faculty.count({
+          where: {
+            ...(namespace === 'ADMIN'
+              ? {
+                  Status: status !== 'ALL' ? status : 'ACTIVE',
+                  ...(search && {
+                    OR: [
+                      {
+                        name: {
+                          contains: search,
+                          mode: 'insensitive',
+                        },
+                      },
+                    ],
+                  }),
+                }
+              : {
+                  Status: 'ACTIVE',
+                }),
+          },
+        }),
+      ]);
+
+      return {
+        data: facultyList,
+        totalItems: total,
+        currentPage: page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getNonPaginatedFacultyList() {
     try {
       const facultyList = await this.prisma.faculty.findMany({
         where: {
-          ...(namespace === 'ADMIN'
-            ? {
-                Status: {
-                  not: 'PERMANENTLY_DELETED',
-                },
-              }
-            : { Status: 'ACTIVE' }),
+          Status: 'ACTIVE',
         },
         include: {
           CreatedBy: {
@@ -64,9 +146,7 @@ export class FacultyService {
 
       return facultyList;
     } catch (err) {
-      if (err instanceof HttpException) {
-        throw err;
-      }
+      console.log(err);
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,

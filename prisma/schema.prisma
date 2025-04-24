@@ -23,13 +23,14 @@ model Account {
   accountInfoId   String?         @db.ObjectId
   AccountInfo     AccountInfo?    @relation(fields: [accountInfoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  Faculty      Faculty[]      @relation("createdBy")
-  FacultyAdmin FacultyAdmin[]
-  Article      Article[]
-  Event        Event[]
-  Nationality  Nationality[]  @relation("createdBy")
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  Faculty           Faculty[]      @relation("createdBy")
+  FacultyAdmin      FacultyAdmin[]
+  SupervisedArticle Article[]      @relation("supervised")
+  UploadedArticle   Article[]      @relation("uploaded")
+  Event             Event[]
+  Nationality       Nationality[]  @relation("createdBy")
 }
 
 model AccountInfo {
@@ -102,15 +103,18 @@ enum AccountRoleType {
 model Article {
   id             String        @id @default(auto()) @map("_id") @db.ObjectId
   title          String
-  documentId     String        @db.ObjectId
-  Document       File          @relation(fields: [documentId], references: [id])
-  eventId        String        @db.ObjectId
-  Event          Event         @relation(fields: [eventId], references: [id])
+  documentId     String?       @db.ObjectId
+  Document       File?         @relation(fields: [documentId], references: [id])
+  eventId        String?       @db.ObjectId
+  Event          Event?        @relation(fields: [eventId], references: [id])
   facultyId      String        @db.ObjectId
   Faculty        Faculty       @relation(fields: [facultyId], references: [id])
+  content        String?
   ArticleStatus  ArticleStatus @default(PENDING)
+  uploadedById   String?       @db.ObjectId
+  UploadedBy     Account?      @relation("uploaded", fields: [uploadedById], references: [id])
   supervisedById String?       @db.ObjectId
-  SupervisedBy   Account?      @relation(fields: [supervisedById], references: [id])
+  SupervisedBy   Account?      @relation("supervised", fields: [supervisedById], references: [id])
 
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
@@ -129,17 +133,21 @@ model ArticleLog {
 }
 
 model Event {
-  id         String  @id @default(auto()) @map("_id") @db.ObjectId
-  title      String
-  hostedById String  @db.ObjectId
-  HostedBy   Account @relation(fields: [hostedById], references: [id])
-  Status     Status  @default(ACTIVE)
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  avatarId    String?     @db.ObjectId
+  Avatar      File?       @relation(fields: [avatarId], references: [id])
+  hostedById  String      @db.ObjectId
+  HostedBy    Account     @relation(fields: [hostedById], references: [id])
+  Status      EventStatus @default(ACTIVE)
 
-  startDate DateTime  @default(now())
-  endDate   DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  Article   Article[]
+  startDate   DateTime  @default(now())
+  closureDate DateTime
+  endDate     DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  Article     Article[]
 }
 
 model File {
@@ -154,6 +162,7 @@ model File {
   Article     Article[]
   AccountInfo AccountInfo[]
   Nationality Nationality[]
+  Event       Event[]
 }
 
 model Nationality {
@@ -179,6 +188,7 @@ enum ArticleLogStatus {
 }
 
 enum ArticleStatus {
+  DRAFT
   PENDING
   APPROVED
   NEED_ACTION
@@ -191,6 +201,14 @@ enum AccountStatus {
   INVITED
   SUSPENDED
   PERMANENTLY_DELETED
+  REJECTED
+}
+
+enum EventStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  SUSPENDED
 }
 
 enum Status {

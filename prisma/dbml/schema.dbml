@@ -17,7 +17,8 @@ Table Account {
   updatedAt DateTime [not null]
   Faculty Faculty [not null]
   FacultyAdmin FacultyAdmin [not null]
-  Article Article [not null]
+  SupervisedArticle Article [not null]
+  UploadedArticle Article [not null]
   Event Event [not null]
   Nationality Nationality [not null]
 }
@@ -82,13 +83,16 @@ Table FacultyAdmin {
 Table Article {
   id String [pk]
   title String [not null]
-  documentId String [not null]
-  Document File [not null]
-  eventId String [not null]
-  Event Event [not null]
+  documentId String
+  Document File
+  eventId String
+  Event Event
   facultyId String [not null]
   Faculty Faculty [not null]
+  content String
   ArticleStatus ArticleStatus [not null, default: 'PENDING']
+  uploadedById String
+  UploadedBy Account
   supervisedById String
   SupervisedBy Account
   createdAt DateTime [default: `now()`, not null]
@@ -109,11 +113,15 @@ Table ArticleLog {
 Table Event {
   id String [pk]
   title String [not null]
+  description String
+  avatarId String
+  Avatar File
   hostedById String [not null]
   HostedBy Account [not null]
-  Status Status [not null, default: 'ACTIVE']
+  Status EventStatus [not null, default: 'ACTIVE']
   startDate DateTime [default: `now()`, not null]
-  endDate DateTime
+  closureDate DateTime [not null]
+  endDate DateTime [not null]
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   Article Article [not null]
@@ -130,6 +138,7 @@ Table File {
   Article Article [not null]
   AccountInfo AccountInfo [not null]
   Nationality Nationality [not null]
+  Event Event [not null]
 }
 
 Table Nationality {
@@ -170,6 +179,7 @@ Enum ArticleLogStatus {
 }
 
 Enum ArticleStatus {
+  DRAFT
   PENDING
   APPROVED
   NEED_ACTION
@@ -182,6 +192,14 @@ Enum AccountStatus {
   INVITED
   SUSPENDED
   PERMANENTLY_DELETED
+  REJECTED
+}
+
+Enum EventStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  SUSPENDED
 }
 
 Enum Status {
@@ -219,9 +237,13 @@ Ref: Article.eventId > Event.id
 
 Ref: Article.facultyId > Faculty.id
 
+Ref: Article.uploadedById > Account.id
+
 Ref: Article.supervisedById > Account.id
 
 Ref: ArticleLog.articleId > Article.id
+
+Ref: Event.avatarId > File.id
 
 Ref: Event.hostedById > Account.id
 
