@@ -1,7 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { articleDraftDTO } from './dto';
+import { articleDraftDTO, articleUploadDTO } from './dto';
 import { Account, ArticleStatus } from '@prisma/client';
+import { Request } from 'express';
 
 @Injectable()
 export class ArticleService {
@@ -148,6 +149,145 @@ export class ArticleService {
         });
 
         return articles;
+      }
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async updateDraftArticle(
+    data: articleDraftDTO,
+    user: Omit<Account, 'password'>,
+    id: string,
+  ) {
+    try {
+      const studentFaculty = await this.prisma.accountInfo.findFirst({
+        where: {
+          id: user.accountInfoId as string,
+        },
+      });
+      if (!studentFaculty) {
+        throw new HttpException(
+          'Student faculty not found',
+          HttpStatus.BAD_REQUEST,
+        );
+      } else {
+        const articles = await this.prisma.article.update({
+          where: {
+            id: id,
+          },
+          data: {
+            title: data.title,
+            content: data.content,
+          },
+        });
+
+        return articles;
+      }
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async uploadArticle(
+    data: articleUploadDTO,
+    doc: Express.Multer.File,
+    user: Omit<Account, 'password'>,
+    req: Request,
+  ) {
+    try {
+      if (data.articleId && data.articleId !== '') {
+        const article = await this.prisma.article.findFirst({
+          where: {
+            id: data.articleId,
+          },
+        });
+        if (!article) {
+          throw new HttpException('Article not found', HttpStatus.BAD_REQUEST);
+        }
+
+        const updatedArticle = await this.prisma.article.update({
+          where: {
+            id: data.articleId,
+          },
+          data: {
+            title: data.title,
+            content: data.content,
+            ArticleStatus: 'PENDING',
+            Event: {
+              connect: {
+                id: data.eventId,
+              },
+            },
+            Document: {
+              create: {
+                name: doc.originalname,
+                path:
+                  process.env.NODE_ENV === 'development'
+                    ? `${req.protocol}://localhost:8000/files/${doc.filename}`
+                    : `${req.protocol}s://${req.hostname}/files/${doc.filename}`,
+                type: doc.mimetype,
+              },
+            },
+          },
+        });
+
+        return updatedArticle;
+      } else {
+        const studentFaculty = await this.prisma.accountInfo.findFirst({
+          where: {
+            id: user.accountInfoId as string,
+          },
+        });
+        if (!studentFaculty) {
+          throw new HttpException(
+            'Student faculty not found',
+            HttpStatus.BAD_REQUEST,
+          );
+        } else {
+          const articles = await this.prisma.article.create({
+            data: {
+              title: data.title,
+              content: data.content,
+              ArticleStatus: 'PENDING',
+              UploadedBy: {
+                connect: {
+                  id: user.id,
+                },
+              },
+              Faculty: {
+                connect: {
+                  id: studentFaculty.facultyId as string,
+                },
+              },
+              Event: {
+                connect: {
+                  id: data.eventId,
+                },
+              },
+              Document: {
+                create: {
+                  name: doc.originalname,
+                  path:
+                    process.env.NODE_ENV === 'development'
+                      ? `${req.protocol}://localhost:8000/files/${doc.filename}`
+                      : `${req.protocol}s://${req.hostname}/files/${doc.filename}`,
+                  type: doc.mimetype,
+                },
+              },
+            },
+          });
+
+          return articles;
+        }
       }
     } catch (err) {
       console.log(err);
