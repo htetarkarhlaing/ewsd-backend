@@ -148,6 +148,7 @@ model Event {
 
   startDate   DateTime  @default(now())
   closureDate DateTime
+  deadline    DateTime?
   endDate     DateTime
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
