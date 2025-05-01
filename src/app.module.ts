@@ -14,6 +14,8 @@ import { EventModule } from './event/event.module';
 import { AccountModule } from './account/account.module';
 import { NationModule } from './nation/nation.module';
 import { ArticleModule } from './article/article.module';
+import { ChatModule } from './chat/chat.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { ArticleModule } from './article/article.module';
     AccountModule,
     NationModule,
     ArticleModule,
+    ChatModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

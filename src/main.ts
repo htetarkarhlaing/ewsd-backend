@@ -7,6 +7,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { SwaggerTheme, SwaggerThemeNameEnum } from 'swagger-themes';
 import { ResponseInterceptor } from './helper';
 import { AllExceptionsFilter } from './helper/All-exception.filterer';
+import { IoAdapter } from '@nestjs/platform-socket.io';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -21,10 +23,13 @@ async function bootstrap() {
     origin: '*',
     methods: '*',
   });
+  app.use(express.json({ limit: '500mb' }));
+  app.use(express.urlencoded({ limit: '500mb', extended: true }));
   app.enableShutdownHooks();
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(new ResponseInterceptor(new Reflector())); // * success response formatter
   app.useGlobalPipes(new ValidationPipe());
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   const config = new DocumentBuilder()
     .setTitle('Apex University')

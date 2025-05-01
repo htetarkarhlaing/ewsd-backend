@@ -4,10 +4,15 @@ import { AdminInviteDTO, StudentRegisterDTO } from './dto';
 import { genSaltSync, hashSync } from 'bcrypt';
 import { Request } from 'express';
 import { Account } from '@prisma/client';
+import { MailService } from 'src/helper/Mailer';
+import { AdminInvitationTemplate } from 'src/helper/template/AdminInvitation';
 
 @Injectable()
 export class AccountService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailer: MailService,
+  ) {}
 
   private async studentIdGenerator(): Promise<string> {
     const words = 'AHU';
@@ -382,7 +387,27 @@ export class AccountService {
             },
           }),
         },
+        include: {
+          FacultyAdmin: {
+            include: {
+              Faculty: true,
+            },
+          },
+        },
       });
+
+      const adminRole = data?.facultyId
+        ? 'Marketing Coordinator' + data?.isAdmin
+          ? admin?.FacultyAdmin[0]?.Faculty?.name + 'Admin'
+          : admin?.FacultyAdmin[0]?.Faculty?.name + 'Member'
+        : 'Marketing Manager';
+
+      void this.mailer.sendMail(
+        data.email,
+        data.name,
+        'Management account invitation',
+        AdminInvitationTemplate(data.email, data.password, adminRole),
+      );
 
       return admin;
     } catch (err) {

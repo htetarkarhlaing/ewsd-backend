@@ -96,7 +96,7 @@ export class ArticleController {
   @ApiOperation({ summary: 'Update draft article' })
   @UseGuards(studentJWTAuthGuard)
   @ApiBearerAuth()
-  @Put('update-draft/:articleId')
+  @Put('update-draft/:id')
   @ApiBody({
     type: articleDraftDTO,
     description: 'Student article data',
