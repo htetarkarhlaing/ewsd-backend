@@ -129,6 +129,26 @@ export class EventService {
     }
   }
 
+  async getEventListNoPagination() {
+    try {
+      const eventList = await this.prisma.event.findMany({
+        where: {
+          Status: 'ACTIVE',
+        },
+      });
+
+      return eventList;
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async createEvent(
     data: eventCreateDTO,
     image: Express.Multer.File,

@@ -97,6 +97,26 @@ export class EventController {
     }
   }
 
+  @ApiOperation({ summary: 'Event list public provider not pagination' })
+  @Get('list-public-no-pagination')
+  async eventListFetcherNoPagination() {
+    try {
+      const eventList = await this.eventService.getEventListNoPagination();
+      return {
+        data: eventList,
+        message: 'Event list fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post('create')
   @ApiOperation({ summary: 'create event' })
   @ApiConsumes('multipart/form-data')
