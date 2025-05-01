@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
@@ -167,6 +168,51 @@ export class ArticleController {
       return {
         data: draftArticle,
         message: 'Student article saved as draft successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Delete draft article' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBearerAuth()
+  @Delete('delete-draft/:id')
+  async deleteDraftArticle(@Param('id') id: string) {
+    try {
+      const draftArticle = await this.articleService.deleteDraftArticle(id);
+      return {
+        data: draftArticle,
+        message: 'Draft article deleted successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Cancel article' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBearerAuth()
+  @Delete('cancel/:id')
+  async cancelArticle(@Param('id') id: string) {
+    try {
+      const cancelledArticle =
+        await this.articleService.cancelUploadedArticle(id);
+      return {
+        data: cancelledArticle,
+        message: 'Article review cancelled successfully',
       };
     } catch (err) {
       if (err instanceof HttpException) {

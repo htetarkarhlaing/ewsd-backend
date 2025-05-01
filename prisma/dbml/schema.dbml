@@ -223,6 +223,8 @@ Enum ArticleStatus {
   APPROVED
   NEED_ACTION
   REJECTED
+  CANCELLED
+  PERMANENTLY_DELETED
 }
 
 Enum AccountStatus {

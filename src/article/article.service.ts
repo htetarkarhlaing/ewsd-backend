@@ -22,6 +22,11 @@ export class ArticleService {
           where: {
             AND: [
               {
+                ArticleStatus: {
+                  not: 'PERMANENTLY_DELETED',
+                },
+              },
+              {
                 UploadedBy: {
                   id,
                 },
@@ -288,6 +293,89 @@ export class ArticleService {
 
           return articles;
         }
+      }
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async deleteDraftArticle(id: string) {
+    try {
+      const targetArticle = await this.prisma.article.findFirst({
+        where: {
+          id,
+        },
+      });
+
+      if (targetArticle) {
+        if (targetArticle.ArticleStatus === 'DRAFT') {
+          await this.prisma.article.update({
+            where: {
+              id,
+            },
+            data: {
+              ArticleStatus: 'PERMANENTLY_DELETED',
+            },
+          });
+          return 'Draft article deleted successfully';
+        } else {
+          throw new HttpException(
+            'Uploaded article cannot delete',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      } else {
+        throw new HttpException(
+          'Article not found',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async cancelUploadedArticle(id: string) {
+    try {
+      const targetArticle = await this.prisma.article.findFirst({
+        where: {
+          id,
+        },
+      });
+
+      if (targetArticle) {
+        if (
+          targetArticle.ArticleStatus !== 'DRAFT' &&
+          targetArticle.ArticleStatus !== 'APPROVED'
+        ) {
+          await this.prisma.article.update({
+            where: {
+              id,
+            },
+            data: {
+              ArticleStatus: 'CANCELLED',
+            },
+          });
+          return 'Article cancelled successfully';
+        } else {
+          throw new HttpException(
+            'Approved article cannot delete',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      } else {
+        throw new HttpException(
+          'Article not found',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     } catch (err) {
       console.log(err);
