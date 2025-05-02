@@ -1,13 +1,54 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SocketGateway } from 'src/socket/gateway';
+import { AdminSocketGateway } from 'src/socket/admin.gateway';
+import { StudentSocketGateway } from 'src/socket/student.gateway';
 
 @Injectable()
 export class ChatService {
   constructor(
     private prisma: PrismaService,
-    private socketGateway: SocketGateway,
+    private adminSocketGateway: AdminSocketGateway,
+    private studentSocketGateway: StudentSocketGateway,
   ) {}
+
+  async adminInboxStudentList(facultyId: string) {
+    try {
+      const studentList = await this.prisma.account.findMany({
+        where: {
+          AND: [
+            {
+              AccountStatus: 'ACTIVE',
+            },
+            {
+              AccountRoleType: 'STUDENT',
+            },
+            {
+              Faculty: {
+                every: {
+                  id: facultyId,
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          AccountInfo: {
+            include: {
+              Avatar: true,
+            },
+          },
+        },
+      });
+
+      return studentList;
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   async chatMessageFetcher(
     chatRoomId: string,
@@ -18,10 +59,10 @@ export class ChatService {
     try {
       const skip = (page - 1) * parseInt(limit.toString());
 
-      const [chatMessageLength, totalCount, unreadCount] = await Promise.all([
+      const [data, totalCount, unreadCount] = await Promise.all([
         this.prisma.chatMessage.findMany({
           where: { chatRoomId },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
           skip,
           take: parseInt(limit.toString()),
         }),
@@ -49,10 +90,10 @@ export class ChatService {
         }),
       ]);
 
-      const hasMore = skip + chatMessageLength.length < totalCount;
+      const hasMore = skip + data.length < totalCount;
 
       return {
-        chatMessageLength,
+        data,
         totalCount,
         unreadCount,
         hasMore,
@@ -87,20 +128,31 @@ export class ChatService {
                 id: senderId,
               },
             },
-            message: content,
-            isRead: true,
+            content: content,
+            isRead: false,
+          },
+          include: {
+            Sender: {
+              include: {
+                AccountInfo: {
+                  include: {
+                    Avatar: true,
+                  },
+                },
+              },
+            },
           },
         });
 
-        const receiverId =
-          targetChatRoom?.studentId === senderId
-            ? targetChatRoom.adminId
-            : targetChatRoom.studentId;
-
-        this.socketGateway.notification(receiverId, {
-          messageId: createdChatMessage.id,
-          content: createdChatMessage.message,
-        });
+        if (targetChatRoom?.studentId === senderId) {
+          this.adminSocketGateway.notification(targetChatRoom?.adminId, {
+            message: createdChatMessage,
+          });
+        } else {
+          this.studentSocketGateway.notification(targetChatRoom?.studentId, {
+            message: createdChatMessage,
+          });
+        }
 
         return createdChatMessage;
       } else {
@@ -117,22 +169,42 @@ export class ChatService {
 
   async createChatRoom(studentId: string, adminId: string) {
     try {
-      const createdChatRoom = await this.prisma.chatRoom.create({
-        data: {
-          Admin: {
-            connect: {
-              id: adminId,
+      const existingChatRoom = await this.prisma.chatRoom.findFirst({
+        where: {
+          AND: [
+            {
+              adminId,
             },
-          },
-          Student: {
-            connect: {
-              id: studentId,
+            {
+              studentId,
             },
-          },
+            {
+              Status: 'ACTIVE',
+            },
+          ],
         },
       });
 
-      return createdChatRoom;
+      if (existingChatRoom) {
+        return existingChatRoom;
+      } else {
+        const createdChatRoom = await this.prisma.chatRoom.create({
+          data: {
+            Admin: {
+              connect: {
+                id: adminId,
+              },
+            },
+            Student: {
+              connect: {
+                id: studentId,
+              },
+            },
+          },
+        });
+
+        return createdChatRoom;
+      }
     } catch (err) {
       console.error(err);
       throw new HttpException(

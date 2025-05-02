@@ -9,6 +9,9 @@ import { AdminLocalStrategy } from './strategy/admin.local.strategy';
 import { JwtService } from '@nestjs/jwt';
 import { StudentService } from './student.service';
 import { ConfigService } from '@nestjs/config';
+import { JwtGuardStrategy } from './strategy/jwt.guard.strategy';
+import { guardLocalStrategy } from './strategy/guard.local.strategy';
+import { GuestService } from './guest.service';
 
 @Module({
   controllers: [AuthController],
@@ -21,6 +24,9 @@ import { ConfigService } from '@nestjs/config';
     JwtStudentStrategy,
     studentLocalStrategy,
     AdminLocalStrategy,
+    JwtGuardStrategy,
+    guardLocalStrategy,
+    GuestService,
     JwtService,
   ],
 })

@@ -4,6 +4,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Put,
   Query,
@@ -23,7 +24,7 @@ import { Account } from '@prisma/client';
 import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
 import { ChatRoomCreateDto, sendMessageDto } from './dto';
 
-@Controller('chat')
+@Controller('chat-service')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
@@ -224,6 +225,7 @@ export class ChatController {
   })
   @ApiBody({
     type: ChatRoomCreateDto,
+    description: 'Admin create chat room',
   })
   async createChatRoomByAdmin(@Body() data: ChatRoomCreateDto) {
     try {
@@ -232,6 +234,7 @@ export class ChatController {
         data.adminId,
       );
     } catch (error) {
+      console.log(error);
       if (error instanceof HttpException) {
         throw error;
       }
@@ -293,6 +296,79 @@ export class ChatController {
         data.chatRoomId,
         data.message,
       );
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('get-student-message-by-id/:id')
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'get student message',
+  })
+  async getStudentMessageById(@Param('id') id: string) {
+    try {
+      return await this.chatService.fetchChatMessageById(id);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('get-admin-message-by-id/:id')
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'get admin message',
+  })
+  async getAdminMessageById(@Param('id') id: string) {
+    try {
+      return await this.chatService.fetchChatMessageById(id);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('get-admin-inbox-student-list')
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiQuery({
+    name: 'facultyId',
+    required: true,
+    description: 'Admin faculty Id',
+  })
+  @ApiOperation({
+    summary: 'get admin message',
+  })
+  async getAdminInboxStudent(
+    @Query()
+    query: {
+      facultyId: string;
+    },
+  ) {
+    try {
+      const studentList = await this.chatService.adminInboxStudentList(
+        query.facultyId,
+      );
+      return studentList;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

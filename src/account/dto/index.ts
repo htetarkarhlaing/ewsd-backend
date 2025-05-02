@@ -72,3 +72,24 @@ export class AdminInviteDTO {
   @IsBoolean()
   isAdmin: boolean;
 }
+
+export class GuestRegisterDTO {
+  @ApiProperty()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  facultyId: string;
+}

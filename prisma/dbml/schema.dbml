@@ -186,7 +186,7 @@ Table ChatMessage {
   id String [pk]
   chatRoomId String [not null]
   ChatRoom ChatRoom [not null]
-  message String [not null]
+  content String [not null]
   senderId String [not null]
   Sender Account [not null]
   isRead Boolean [not null, default: false]

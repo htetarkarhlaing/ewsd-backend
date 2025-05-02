@@ -8,6 +8,158 @@ import { Request } from 'express';
 export class ArticleService {
   constructor(private prisma: PrismaService) {}
 
+  async getArticleListByAdminId(
+    id: string,
+    page = 1,
+    limit = 10,
+    status: ArticleStatus | 'ALL',
+    faculty?: string,
+    event?: string,
+    search?: string,
+  ) {
+    try {
+      const skip = (page - 1) * limit;
+      const [articles, total] = await Promise.all([
+        await this.prisma.article.findMany({
+          where: {
+            AND: [
+              {
+                UploadedBy: {
+                  id,
+                },
+              },
+              {
+                ...(search && {
+                  OR: [
+                    {
+                      title: {
+                        contains: search,
+                        mode: 'insensitive',
+                      },
+                    },
+                  ],
+                }),
+              },
+              {
+                ...(status !== 'ALL'
+                  ? {
+                      ArticleStatus: status,
+                    }
+                  : {
+                      ArticleStatus: {
+                        notIn: ['DRAFT', 'PERMANENTLY_DELETED'],
+                      },
+                    }),
+              },
+              {
+                ...(faculty && {
+                  UploadedBy: {
+                    AccountInfo: {
+                      Faculty: {
+                        id: faculty,
+                      },
+                    },
+                  },
+                }),
+              },
+              {
+                ...(event && {
+                  eventId: event,
+                }),
+              },
+            ],
+          },
+          include: {
+            Document: true,
+            Event: {
+              include: {
+                Avatar: true,
+              },
+            },
+            SupervisedBy: {
+              include: {
+                AccountInfo: {
+                  include: {
+                    Avatar: true,
+                  },
+                },
+              },
+            },
+          },
+          skip,
+          take: limit,
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+        await this.prisma.article.count({
+          where: {
+            AND: [
+              {
+                UploadedBy: {
+                  id,
+                },
+              },
+              {
+                ...(search && {
+                  OR: [
+                    {
+                      title: {
+                        contains: search,
+                        mode: 'insensitive',
+                      },
+                    },
+                  ],
+                }),
+              },
+              {
+                ...(status !== 'ALL'
+                  ? {
+                      ArticleStatus: status,
+                    }
+                  : {
+                      ArticleStatus: {
+                        notIn: ['DRAFT', 'PERMANENTLY_DELETED'],
+                      },
+                    }),
+              },
+              {
+                ...(faculty && {
+                  UploadedBy: {
+                    AccountInfo: {
+                      Faculty: {
+                        id: faculty,
+                      },
+                    },
+                  },
+                }),
+              },
+              {
+                ...(event && {
+                  eventId: event,
+                }),
+              },
+            ],
+          },
+        }),
+      ]);
+
+      return {
+        data: articles,
+        totalItems: total,
+        currentPage: page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async getArticleListByStudentId(
     id: string,
     page = 1,
@@ -96,6 +248,132 @@ export class ArticleService {
               {
                 ...(status !== 'ALL' && {
                   ArticleStatus: status,
+                }),
+              },
+            ],
+          },
+        }),
+      ]);
+
+      return {
+        data: articles,
+        totalItems: total,
+        currentPage: page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getArticleDetail(id: string) {
+    try {
+      const articleData = await this.prisma.article.findFirst({
+        where: {
+          id,
+        },
+        include: {
+          Document: true,
+          Event: {
+            include: {
+              Avatar: true,
+            },
+          },
+          SupervisedBy: {
+            include: {
+              AccountInfo: {
+                include: {
+                  Avatar: true,
+                },
+              },
+            },
+          },
+          ArticleLog: {
+            take: 1,
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+        },
+      });
+      return articleData;
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getArticleList(page = 1, limit = 10, search?: string) {
+    try {
+      const skip = (page - 1) * limit;
+      const [articles, total] = await Promise.all([
+        await this.prisma.article.findMany({
+          where: {
+            AND: [
+              {
+                ArticleStatus: 'APPROVED',
+              },
+              {
+                ...(search && {
+                  OR: [
+                    {
+                      title: {
+                        contains: search,
+                        mode: 'insensitive',
+                      },
+                    },
+                  ],
+                }),
+              },
+            ],
+          },
+          include: {
+            Document: true,
+            Event: {
+              include: {
+                Avatar: true,
+              },
+            },
+            SupervisedBy: {
+              include: {
+                AccountInfo: {
+                  include: {
+                    Avatar: true,
+                  },
+                },
+              },
+            },
+          },
+          skip,
+          take: limit,
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+        await this.prisma.article.count({
+          where: {
+            AND: [
+              {
+                ArticleStatus: 'APPROVED',
+              },
+              {
+                ...(search && {
+                  OR: [
+                    {
+                      title: {
+                        contains: search,
+                        mode: 'insensitive',
+                      },
+                    },
+                  ],
                 }),
               },
             ],

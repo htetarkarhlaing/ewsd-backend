@@ -16,6 +16,7 @@ import { NationModule } from './nation/nation.module';
 import { ArticleModule } from './article/article.module';
 import { ChatModule } from './chat/chat.module';
 import { NotificationModule } from './notification/notification.module';
+import { ReportModule } from './report/report.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { NotificationModule } from './notification/notification.module';
     ArticleModule,
     ChatModule,
     NotificationModule,
+    ReportModule,
   ],
   controllers: [AppController],
   providers: [AppService],
