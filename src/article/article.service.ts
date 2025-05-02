@@ -66,6 +66,7 @@ export class ArticleService {
           },
           include: {
             Document: true,
+            Thumbnail: true,
             Event: {
               include: {
                 Avatar: true,
@@ -194,6 +195,7 @@ export class ArticleService {
           },
           include: {
             Document: true,
+            Thumbnail: true,
             Event: {
               include: {
                 Avatar: true,
@@ -268,6 +270,7 @@ export class ArticleService {
           id,
         },
         include: {
+          Thumbnail: true,
           Document: true,
           Event: {
             include: {
@@ -326,6 +329,7 @@ export class ArticleService {
             ],
           },
           include: {
+            Thumbnail: true,
             Document: true,
             Event: {
               include: {
@@ -660,6 +664,183 @@ export class ArticleService {
         } else {
           throw new HttpException(
             'Approved article cannot delete',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      } else {
+        throw new HttpException(
+          'Article not found',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async approveUploadedArticle(adminId: string, id: string, message?: string) {
+    try {
+      const targetArticle = await this.prisma.article.findFirst({
+        where: {
+          id,
+        },
+      });
+
+      if (targetArticle) {
+        if (
+          targetArticle.ArticleStatus !== 'DRAFT' &&
+          targetArticle.ArticleStatus !== 'APPROVED'
+        ) {
+          await this.prisma.article.update({
+            where: {
+              id,
+            },
+            data: {
+              ArticleStatus: 'APPROVED',
+              SupervisedBy: {
+                connect: {
+                  id: adminId,
+                },
+              },
+            },
+          });
+          await this.prisma.articleLog.create({
+            data: {
+              Article: {
+                connect: {
+                  id: targetArticle.id,
+                },
+              },
+              message: message,
+              ArticleLogStatus: 'APPROVED',
+            },
+          });
+          return 'Article approved successfully';
+        } else {
+          throw new HttpException(
+            'Approved article cannot update',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      } else {
+        throw new HttpException(
+          'Article not found',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async rejectUploadedArticle(adminId: string, id: string, message?: string) {
+    try {
+      const targetArticle = await this.prisma.article.findFirst({
+        where: {
+          id,
+        },
+      });
+
+      if (targetArticle) {
+        if (
+          targetArticle.ArticleStatus !== 'DRAFT' &&
+          targetArticle.ArticleStatus !== 'APPROVED'
+        ) {
+          await this.prisma.article.update({
+            where: {
+              id,
+            },
+            data: {
+              ArticleStatus: 'REJECTED',
+              SupervisedBy: {
+                connect: {
+                  id: adminId,
+                },
+              },
+            },
+          });
+          await this.prisma.articleLog.create({
+            data: {
+              Article: {
+                connect: {
+                  id: targetArticle.id,
+                },
+              },
+              message: message,
+              ArticleLogStatus: 'REJECTED',
+            },
+          });
+          return 'Article rejected successfully';
+        } else {
+          throw new HttpException(
+            'Approved article cannot update',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      } else {
+        throw new HttpException(
+          'Article not found',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async feedbackUploadedArticle(adminId: string, id: string, message?: string) {
+    try {
+      const targetArticle = await this.prisma.article.findFirst({
+        where: {
+          id,
+        },
+      });
+
+      if (targetArticle) {
+        if (
+          targetArticle.ArticleStatus !== 'DRAFT' &&
+          targetArticle.ArticleStatus !== 'APPROVED'
+        ) {
+          await this.prisma.article.update({
+            where: {
+              id,
+            },
+            data: {
+              ArticleStatus: 'NEED_ACTION',
+              SupervisedBy: {
+                connect: {
+                  id: adminId,
+                },
+              },
+            },
+          });
+          await this.prisma.articleLog.create({
+            data: {
+              Article: {
+                connect: {
+                  id: targetArticle.id,
+                },
+              },
+              message: message,
+              ArticleLogStatus: 'NEED_ACTION',
+            },
+          });
+          return 'Article is sent back to student successfully';
+        } else {
+          throw new HttpException(
+            'Approved article cannot update',
             HttpStatus.INTERNAL_SERVER_ERROR,
           );
         }
