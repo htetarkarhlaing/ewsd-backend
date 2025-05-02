@@ -47,7 +47,12 @@ export class FacultyService {
           where: {
             ...(namespace === 'ADMIN'
               ? {
-                  Status: status !== 'ALL' ? status : 'ACTIVE',
+                  Status:
+                    status !== 'ALL'
+                      ? status
+                      : {
+                          not: 'PERMANENTLY_DELETED',
+                        },
                   ...(search && {
                     OR: [
                       {

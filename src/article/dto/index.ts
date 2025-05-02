@@ -29,7 +29,7 @@ export class articleUploadDTO {
   @IsNotEmpty()
   eventId: string;
 
-  @ApiProperty({ type: 'string', format: 'binary', required: true })
+  @ApiProperty({ type: 'string', format: 'binary', required: false })
   thumbnail: string;
 
   @ApiProperty({ type: 'string', format: 'binary', required: true })
@@ -41,4 +41,10 @@ export class articleUploadDTO {
   @IsString()
   @IsOptional()
   articleId?: string;
+}
+
+export class articleFeedbackDTO {
+  @ApiProperty()
+  @IsOptional()
+  message: string;
 }

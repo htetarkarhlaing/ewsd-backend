@@ -23,7 +23,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { studentJWTAuthGuard } from 'src/auth/guards/jwt-student-auth.guard';
-import { articleDraftDTO, articleUploadDTO } from './dto';
+import { articleDraftDTO, articleFeedbackDTO, articleUploadDTO } from './dto';
 import { Request } from 'express';
 import { Account, ArticleStatus } from '@prisma/client';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -382,6 +382,108 @@ export class ArticleController {
       return {
         data: cancelledArticle,
         message: 'Article review cancelled successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Approve article' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiBody({
+    type: articleFeedbackDTO,
+  })
+  @Put('approve/:id')
+  async approveArticle(
+    @Param('id') id: string,
+    @Body() data: articleFeedbackDTO,
+    @Req() req: Request,
+  ) {
+    try {
+      const admin = req.user as Omit<Account, 'password'>;
+      const approvedArticle = await this.articleService.approveUploadedArticle(
+        admin.id,
+        id,
+        data.message,
+      );
+      return {
+        data: approvedArticle,
+        message: 'Article approved successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Reject article' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiBody({
+    type: articleFeedbackDTO,
+  })
+  @Put('reject/:id')
+  async rejectArticle(
+    @Param('id') id: string,
+    @Body() data: articleFeedbackDTO,
+    @Req() req: Request,
+  ) {
+    try {
+      const admin = req.user as Omit<Account, 'password'>;
+      const approvedArticle = await this.articleService.rejectUploadedArticle(
+        admin.id,
+        id,
+        data.message,
+      );
+      return {
+        data: approvedArticle,
+        message: 'Article rejected successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Feedback article' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiBody({
+    type: articleFeedbackDTO,
+  })
+  @Put('feedback/:id')
+  async feedbackArticle(
+    @Param('id') id: string,
+    @Body() data: articleFeedbackDTO,
+    @Req() req: Request,
+  ) {
+    try {
+      const admin = req.user as Omit<Account, 'password'>;
+      const approvedArticle = await this.articleService.feedbackUploadedArticle(
+        admin.id,
+        id,
+        data.message,
+      );
+      return {
+        data: approvedArticle,
+        message: 'Article sent back to student successfully',
       };
     } catch (err) {
       if (err instanceof HttpException) {
