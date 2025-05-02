@@ -87,6 +87,8 @@ Table FacultyAdmin {
 Table Article {
   id String [pk]
   title String [not null]
+  thumbnailId String
+  Thumbnail File
   documentId String
   Document File
   eventId String
@@ -94,6 +96,7 @@ Table Article {
   facultyId String [not null]
   Faculty Faculty [not null]
   content String
+  isOverdue Boolean [not null, default: false]
   ArticleStatus ArticleStatus [not null, default: 'PENDING']
   uploadedById String
   UploadedBy Account
@@ -140,7 +143,8 @@ Table File {
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   Faculty Faculty [not null]
-  Article Article [not null]
+  Document Article [not null]
+  Thumbnail Article [not null]
   AccountInfo AccountInfo [not null]
   Nationality Nationality [not null]
   Event Event [not null]
@@ -272,6 +276,8 @@ Ref: Faculty.createdById > Account.id [delete: Set Null]
 Ref: FacultyAdmin.accountId > Account.id
 
 Ref: FacultyAdmin.facultyId > Faculty.id
+
+Ref: Article.thumbnailId > File.id
 
 Ref: Article.documentId > File.id
 

@@ -107,13 +107,16 @@ enum AccountRoleType {
 model Article {
   id             String        @id @default(auto()) @map("_id") @db.ObjectId
   title          String
+  thumbnailId    String?       @db.ObjectId
+  Thumbnail      File?         @relation("thumbnail", fields: [thumbnailId], references: [id])
   documentId     String?       @db.ObjectId
-  Document       File?         @relation(fields: [documentId], references: [id])
+  Document       File?         @relation("doc", fields: [documentId], references: [id])
   eventId        String?       @db.ObjectId
   Event          Event?        @relation(fields: [eventId], references: [id])
   facultyId      String        @db.ObjectId
   Faculty        Faculty       @relation(fields: [facultyId], references: [id])
   content        String?
+  isOverdue      Boolean       @default(false)
   ArticleStatus  ArticleStatus @default(PENDING)
   uploadedById   String?       @db.ObjectId
   UploadedBy     Account?      @relation("uploaded", fields: [uploadedById], references: [id])
@@ -164,7 +167,8 @@ model File {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   Faculty     Faculty[]
-  Article     Article[]
+  Document    Article[]     @relation("doc")
+  Thumbnail   Article[]     @relation("thumbnail")
   AccountInfo AccountInfo[]
   Nationality Nationality[]
   Event       Event[]

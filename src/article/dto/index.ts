@@ -30,6 +30,9 @@ export class articleUploadDTO {
   eventId: string;
 
   @ApiProperty({ type: 'string', format: 'binary', required: true })
+  thumbnail: string;
+
+  @ApiProperty({ type: 'string', format: 'binary', required: true })
   document: string;
 
   @ApiProperty({

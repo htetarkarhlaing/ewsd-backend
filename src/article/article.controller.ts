@@ -10,7 +10,7 @@ import {
   Put,
   Query,
   Req,
-  UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -26,7 +26,7 @@ import { studentJWTAuthGuard } from 'src/auth/guards/jwt-student-auth.guard';
 import { articleDraftDTO, articleUploadDTO } from './dto';
 import { Request } from 'express';
 import { Account, ArticleStatus } from '@prisma/client';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
@@ -292,33 +292,48 @@ export class ArticleController {
     description: 'Student article data',
   })
   @UseInterceptors(
-    FileInterceptor('document', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (_, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          return cb(null, `${randomName}${extname(file.originalname)}`);
-        },
-      }),
-    }),
+    FileFieldsInterceptor(
+      [
+        { name: 'document', maxCount: 1 },
+        { name: 'thumbnail', maxCount: 1 },
+      ],
+      {
+        storage: diskStorage({
+          destination: './uploads',
+          filename: (_, file, cb) => {
+            const randomName = Array(32)
+              .fill(null)
+              .map(() => Math.round(Math.random() * 16).toString(16))
+              .join('');
+            return cb(null, `${randomName}${extname(file.originalname)}`);
+          },
+        }),
+      },
+    ),
   )
   async uploadStudentArticle(
     @Body() data: articleUploadDTO,
+    @UploadedFiles()
+    files: {
+      document?: Express.Multer.File[];
+      thumbnail?: Express.Multer.File[];
+    },
     @Req() req: Request,
-    @UploadedFile() doc: Express.Multer.File,
-    @Req() request: Request,
   ) {
     try {
       const student = req.user as Omit<Account, 'password'>;
+
+      const document = files.document?.[0] as Express.Multer.File;
+      const thumbnail = files.thumbnail?.[0] as Express.Multer.File;
+
       const draftArticle = await this.articleService.uploadArticle(
         data,
-        doc,
         student,
-        request,
+        req,
+        document,
+        thumbnail,
       );
+
       return {
         data: draftArticle,
         message: 'Student article saved as draft successfully',

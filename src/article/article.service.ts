@@ -472,12 +472,19 @@ export class ArticleService {
 
   async uploadArticle(
     data: articleUploadDTO,
-    doc: Express.Multer.File,
     user: Omit<Account, 'password'>,
     req: Request,
+    doc: Express.Multer.File,
+    thumbnail?: Express.Multer.File,
   ) {
     try {
       if (data.articleId && data.articleId !== '') {
+        const targetEvent = await this.prisma.event.findFirst({
+          where: {
+            id: data.eventId,
+          },
+        });
+
         const article = await this.prisma.article.findFirst({
           where: {
             id: data.articleId,
@@ -500,6 +507,23 @@ export class ArticleService {
                 id: data.eventId,
               },
             },
+            isOverdue:
+              new Date(targetEvent?.deadline || '').getTime() >
+              new Date().getTime()
+                ? false
+                : true,
+            ...(thumbnail && {
+              Thumbnail: {
+                create: {
+                  name: thumbnail.originalname,
+                  path:
+                    process.env.NODE_ENV === 'development'
+                      ? `${req.protocol}://localhost:8000/files/${thumbnail.filename}`
+                      : `${req.protocol}s://${req.hostname}/files/${thumbnail.filename}`,
+                  type: thumbnail.mimetype,
+                },
+              },
+            }),
             Document: {
               create: {
                 name: doc.originalname,
