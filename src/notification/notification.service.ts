@@ -32,6 +32,8 @@ export class NotificationService {
 
       return {
         notifications,
+        currentPage: page,
+        limit: limit,
         totalCount,
         unreadCount,
         hasMore,

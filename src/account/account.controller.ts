@@ -349,7 +349,7 @@ export class AccountController {
       );
       return {
         data: supervisorList,
-        message: 'Account role list fetched successfully',
+        message: 'Student registration rejected successfully',
       };
     } catch (err) {
       if (err instanceof HttpException) {
