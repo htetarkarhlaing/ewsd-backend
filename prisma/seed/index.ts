@@ -19,13 +19,10 @@ async function main() {
       AccountRoleType: 'ADMIN',
     },
   });
-
   if (!admin) {
     const role = await prisma.accountRole.findFirst();
-
     const salt = genSaltSync(10);
     const hashedPassword = hashSync(masterAdmin.password, salt);
-
     const createdAccountInfo = async () => {
       return await prisma.accountInfo.create({
         data: {
@@ -40,7 +37,6 @@ async function main() {
         },
       });
     };
-
     if (role) {
       await prisma.account.create({
         data: {
@@ -55,52 +51,22 @@ async function main() {
       });
     }
   }
-
-  const addedNotification = await prisma.notification.createMany({
-    data: [
-      {
-        title: `test 1`,
-        content: `test desc 1`,
-        studentId: '68123581d1050d45078ac4a4',
-      },
-      {
-        title: `test 2`,
-        content: `test desc 2`,
-        studentId: '68123581d1050d45078ac4a4',
-      },
-      {
-        title: `test 3`,
-        content: `test desc 3`,
-        studentId: '68123581d1050d45078ac4a4',
-      },
-      {
-        title: `test 4`,
-        content: `test desc 4`,
-        studentId: '68123581d1050d45078ac4a4',
-      },
-      {
-        title: `test 1`,
-        content: `test desc 1`,
-        studentId: '68123581d1050d45078ac4a4',
-      },
-      {
-        title: `test 2`,
-        content: `test desc 2`,
-        studentId: '68123581d1050d45078ac4a4',
-      },
-      {
-        title: `test 3`,
-        content: `test desc 3`,
-        studentId: '68123581d1050d45078ac4a4',
-      },
-      {
-        title: `test 4`,
-        content: `test desc 4`,
-        studentId: '68123581d1050d45078ac4a4',
-      },
-    ],
-  });
-
-  console.log(addedNotification);
+  // function delay(ms: number) {
+  //   return new Promise((resolve) => setTimeout(resolve, ms));
+  // }
+  // async function runSequentially() {
+  //   for (let i = 0; i < 20; i++) {
+  //     const addedNotification = await prisma.notification.create({
+  //       data: {
+  //         title: `test ${i + 1}`,
+  //         content: `test desc ${i + 1}`,
+  //         studentId: '68123581d1050d45078ac4a4',
+  //       },
+  //     });
+  //     console.log(addedNotification);
+  //     await delay(800); // wait 800ms before next iteration
+  //   }
+  // }
+  // await runSequentially();
 }
 void main();

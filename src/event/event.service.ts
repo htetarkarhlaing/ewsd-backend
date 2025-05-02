@@ -162,6 +162,7 @@ export class EventService {
           description: data.description,
           startDate: moment(data.startDate).toISOString(),
           closureDate: moment(data.closureDate).toISOString(),
+          deadline: moment(data.deadline).toISOString(),
           endDate: moment(data.endDate).toISOString(),
           Avatar: {
             create: {
@@ -196,6 +197,105 @@ export class EventService {
       return createdFaculty;
     } catch (err) {
       console.log(err);
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  async updateEvent(
+    id: string,
+    data: eventCreateDTO,
+    req: Request,
+    image?: Express.Multer.File,
+  ) {
+    try {
+      const updatedFaculty = await this.prisma.event.update({
+        where: {
+          id,
+        },
+        data: {
+          title: data.title,
+          description: data.description,
+          startDate: moment(data.startDate).toISOString(),
+          closureDate: moment(data.closureDate).toISOString(),
+          deadline: moment(data.deadline).toISOString(),
+          endDate: moment(data.endDate).toISOString(),
+          ...(image && {
+            Avatar: {
+              create: {
+                name: image.originalname,
+                path:
+                  process.env.NODE_ENV === 'development'
+                    ? `${req.protocol}://localhost:8000/files/${image.filename}`
+                    : `${req.protocol}s://${req.hostname}/files/${image.filename}`,
+                type: image.mimetype,
+              },
+            },
+          }),
+        },
+        include: {
+          Avatar: true,
+          HostedBy: {
+            include: {
+              AccountRole: true,
+              AccountInfo: {
+                include: {
+                  Avatar: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      return updatedFaculty;
+    } catch (err) {
+      console.log(err);
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  async deleteEvent(id: string) {
+    try {
+      const targetEvent = await this.prisma.event.findFirst({
+        where: {
+          id,
+        },
+      });
+      if (targetEvent) {
+        if (targetEvent.Status === 'COMPLETED') {
+          throw new HttpException(
+            `Completed event cannot suspended`,
+            HttpStatus.CONFLICT,
+          );
+        } else {
+          const updatedFaculty = await this.prisma.event.update({
+            where: {
+              id,
+            },
+            data: {
+              Status: 'SUSPENDED',
+            },
+          });
+
+          return updatedFaculty;
+        }
+      } else {
+        throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+      }
+    } catch (err) {
       if (err instanceof HttpException) {
         throw err;
       } else {

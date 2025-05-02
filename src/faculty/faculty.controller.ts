@@ -1,10 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
+  Put,
   Query,
   Req,
   UploadedFile,
@@ -23,7 +26,7 @@ import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { facultyCreateDTO } from './dto';
+import { facultyCreateDTO, facultyUpdateDTO } from './dto';
 import { Request } from 'express';
 
 @ApiTags('Faculty')
@@ -154,6 +157,101 @@ export class FacultyController {
       return {
         data: createdFaculty,
         message: 'Faculty created successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Put('update/:id')
+  @ApiOperation({ summary: 'update faculty' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: facultyUpdateDTO })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (_, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          return cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  async updateFaculty(
+    @Param('id') id: string,
+    @Body() data: facultyCreateDTO,
+    @Req() req: Request,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    try {
+      const updatedFaculty = await this.facultyService.updateFaculty(
+        id,
+        data,
+        req,
+        image,
+      );
+      return {
+        data: updatedFaculty,
+        message: 'Faculty updated successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Delete('toggle/:id')
+  @ApiOperation({ summary: 'toggle faculty' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  async toggleFaculty(@Param('id') id: string) {
+    try {
+      const updatedFaculty = await this.facultyService.toggleFaculty(id);
+      return {
+        data: updatedFaculty,
+        message: 'Faculty updated successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Delete('delete/:id')
+  @ApiOperation({ summary: 'delete faculty' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  async deleteFaculty(@Param('id') id: string) {
+    try {
+      const updatedFaculty = await this.facultyService.deleteFaculty(id);
+      return {
+        data: updatedFaculty,
+        message: 'Faculty deleted successfully',
       };
     } catch (err) {
       if (err instanceof HttpException) {

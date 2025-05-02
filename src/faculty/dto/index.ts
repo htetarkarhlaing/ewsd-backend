@@ -15,3 +15,18 @@ export class facultyCreateDTO {
   @ApiProperty({ type: 'string', format: 'binary', required: true })
   image: string;
 }
+
+export class facultyUpdateDTO {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+
+  @ApiProperty({ type: 'string', format: 'binary', required: false })
+  image: string;
+}

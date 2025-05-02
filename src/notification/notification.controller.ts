@@ -54,8 +54,8 @@ export class NotificationController {
       const student = req.user as Omit<Account, 'password'>;
       return await this.notificationService.studentNotiFetcher(
         student.id,
-        page,
-        limit,
+        parseInt(page.toString()),
+        parseInt(limit.toString()),
       );
     } catch (error) {
       if (error instanceof HttpException) {

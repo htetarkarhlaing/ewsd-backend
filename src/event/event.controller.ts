@@ -1,10 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
+  Put,
   Query,
   Req,
   UploadedFile,
@@ -19,7 +22,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
-import { eventCreateDTO } from './dto';
+import { eventCreateDTO, eventUpdateDTO } from './dto';
 import { Request } from 'express';
 import { EventService } from './event.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -151,6 +154,78 @@ export class EventController {
       return {
         data: createdEvent,
         message: 'Event created successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Put('update/:id')
+  @ApiOperation({ summary: 'update event' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: eventUpdateDTO })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (_, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          return cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  async updateEvent(
+    @Body() data: eventUpdateDTO,
+    @Req() req: Request,
+    @UploadedFile() image: Express.Multer.File,
+    @Param('id') id: string,
+  ) {
+    try {
+      const createdEvent = await this.eventService.updateEvent(
+        id,
+        data,
+        req,
+        image,
+      );
+      return {
+        data: createdEvent,
+        message: 'Event created successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Delete('suspend/:id')
+  @ApiOperation({ summary: 'suspend event' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  async suspendEvent(@Param('id') id: string) {
+    try {
+      const updatedEvent = await this.eventService.deleteEvent(id);
+      return {
+        data: updatedEvent,
+        message: 'Event suspended successfully',
       };
     } catch (err) {
       if (err instanceof HttpException) {

@@ -209,4 +209,202 @@ export class FacultyService {
       }
     }
   }
+
+  async updateFaculty(
+    id: string,
+    data: facultyCreateDTO,
+    req: Request,
+    image?: Express.Multer.File,
+  ) {
+    try {
+      const updatedFaculty = await this.prisma.faculty.update({
+        where: {
+          id,
+        },
+        data: {
+          name: data.name,
+          description: data.description,
+
+          ...(image && {
+            Avatar: {
+              create: {
+                name: image.originalname,
+                path:
+                  process.env.NODE_ENV === 'development'
+                    ? `${req.protocol}://localhost:8000/files/${image.filename}`
+                    : `${req.protocol}s://${req.hostname}/files/${image.filename}`,
+                type: image.mimetype,
+              },
+            },
+          }),
+        },
+        include: {
+          CreatedBy: {
+            include: {
+              AccountRole: true,
+              AccountInfo: {
+                include: {
+                  Avatar: true,
+                },
+              },
+            },
+          },
+          Avatar: true,
+        },
+      });
+      return updatedFaculty;
+    } catch (err) {
+      console.log(err);
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  async toggleFaculty(id: string) {
+    try {
+      const targetFaculty = await this.prisma.faculty.findFirst({
+        where: {
+          id,
+        },
+      });
+      if (targetFaculty) {
+        if (targetFaculty.Status === 'ACTIVE') {
+          const activeStudentCount = await this.prisma.accountInfo.count({
+            where: {
+              AND: [
+                {
+                  Account: {
+                    every: {
+                      AccountStatus: {
+                        in: ['ACTIVE', 'PENDING'],
+                      },
+                    },
+                  },
+                },
+                {
+                  facultyId: targetFaculty.id,
+                },
+              ],
+            },
+          });
+          if (activeStudentCount > 0) {
+            throw new HttpException(
+              `Faculty have ${activeStudentCount} active student and cannot suspend. `,
+              HttpStatus.NOT_FOUND,
+            );
+          } else {
+            const updatedFaculty = await this.prisma.faculty.update({
+              where: {
+                id,
+              },
+              data: {
+                Status: 'SUSPENDED',
+              },
+            });
+
+            return updatedFaculty;
+          }
+        } else {
+          const updatedFaculty = await this.prisma.faculty.update({
+            where: {
+              id,
+            },
+            data: {
+              Status: 'ACTIVE',
+            },
+          });
+
+          return updatedFaculty;
+        }
+      } else {
+        throw new HttpException('Faculty not found', HttpStatus.NOT_FOUND);
+      }
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  async deleteFaculty(id: string) {
+    try {
+      const targetFaculty = await this.prisma.faculty.findFirst({
+        where: {
+          id,
+        },
+      });
+      if (targetFaculty) {
+        if (targetFaculty.Status === 'ACTIVE') {
+          const activeStudentCount = await this.prisma.accountInfo.count({
+            where: {
+              AND: [
+                {
+                  Account: {
+                    every: {
+                      AccountStatus: {
+                        in: ['ACTIVE', 'PENDING'],
+                      },
+                    },
+                  },
+                },
+                {
+                  facultyId: targetFaculty.id,
+                },
+              ],
+            },
+          });
+          if (activeStudentCount > 0) {
+            throw new HttpException(
+              `Faculty have ${activeStudentCount} active student and cannot delete. `,
+              HttpStatus.NOT_FOUND,
+            );
+          } else {
+            const updatedFaculty = await this.prisma.faculty.update({
+              where: {
+                id,
+              },
+              data: {
+                Status: 'PERMANENTLY_DELETED',
+              },
+            });
+
+            return updatedFaculty;
+          }
+        } else {
+          const updatedFaculty = await this.prisma.faculty.update({
+            where: {
+              id,
+            },
+            data: {
+              Status: 'PERMANENTLY_DELETED',
+            },
+          });
+
+          return updatedFaculty;
+        }
+      } else {
+        throw new HttpException('Faculty not found', HttpStatus.NOT_FOUND);
+      }
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
 }
