@@ -93,3 +93,29 @@ export class GuestRegisterDTO {
   @IsNotEmpty()
   facultyId: string;
 }
+
+export class manageStudentRegisterDTO {
+  @ApiProperty()
+  @IsNotEmpty()
+  studentId: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  reason?: string;
+}
+
+export class updatePasswordByAdmin {
+  @ApiProperty()
+  @IsNotEmpty()
+  newPassword: string;
+}
+
+export class updatePasswordSelf {
+  @ApiProperty()
+  @IsNotEmpty()
+  newPassword: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  currentPassword: string;
+}

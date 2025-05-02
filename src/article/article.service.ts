@@ -24,11 +24,6 @@ export class ArticleService {
           where: {
             AND: [
               {
-                UploadedBy: {
-                  id,
-                },
-              },
-              {
                 ...(search && {
                   OR: [
                     {
@@ -95,11 +90,6 @@ export class ArticleService {
         await this.prisma.article.count({
           where: {
             AND: [
-              {
-                UploadedBy: {
-                  id,
-                },
-              },
               {
                 ...(search && {
                   OR: [

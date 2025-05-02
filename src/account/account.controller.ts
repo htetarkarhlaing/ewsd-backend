@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
+  Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -18,7 +21,14 @@ import {
 } from '@nestjs/swagger';
 import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
 import { AccountService } from './account.service';
-import { AdminInviteDTO, GuestRegisterDTO, StudentRegisterDTO } from './dto';
+import {
+  AdminInviteDTO,
+  GuestRegisterDTO,
+  manageStudentRegisterDTO,
+  StudentRegisterDTO,
+  updatePasswordByAdmin,
+  updatePasswordSelf,
+} from './dto';
 import { Request } from 'express';
 import { studentJWTAuthGuard } from 'src/auth/guards/jwt-student-auth.guard';
 import { Account } from '@prisma/client';
@@ -290,6 +300,169 @@ export class AccountController {
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  @ApiOperation({ summary: 'Approve student register' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @Post('approve-student-register')
+  async approveStudentRegister(@Body() data: manageStudentRegisterDTO) {
+    try {
+      const approvedStudent = await this.accountService.manageStudentRegister(
+        'APPROVE',
+        data.studentId,
+      );
+      return {
+        data: approvedStudent,
+        message: 'Student registration approved successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Reject student register' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @Post('reject-student-register')
+  async rejectStudentRegister(@Body() data: manageStudentRegisterDTO) {
+    try {
+      const supervisorList = await this.accountService.manageStudentRegister(
+        'REJECT',
+        data.studentId,
+        data.reason,
+      );
+      return {
+        data: supervisorList,
+        message: 'Account role list fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete('delete/:id')
+  @ApiOperation({ summary: 'Delete a student account (permanently)' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  async deleteStudent(@Param('id') studentId: string) {
+    try {
+      const result = await this.accountService.deleteStudent(studentId);
+      return {
+        message: 'Student deleted successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Delete('toggle-lock/:id')
+  @ApiOperation({ summary: 'Toggle a player (suspended)' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  async toggleStudent(@Param('id') studentId: string) {
+    try {
+      const result = await this.accountService.toggleStudent(studentId);
+      return {
+        message: 'Student account updated successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Post('update-password/:id')
+  @ApiOperation({ summary: 'Update student password' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiBody({
+    type: updatePasswordByAdmin,
+  })
+  async updateStudentPassword(
+    @Param('id') student: string,
+    @Body() data: updatePasswordByAdmin,
+  ) {
+    try {
+      const result = await this.accountService.updateStudentPassword(
+        student,
+        data.newPassword,
+      );
+      return {
+        message: 'Student password updated successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Patch('update-password')
+  @ApiOperation({ summary: 'Update student password self' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBody({
+    type: updatePasswordSelf,
+  })
+  @ApiBearerAuth()
+  async updateStudentPasswordSelf(
+    @Body() data: updatePasswordSelf,
+    @Req() req: Request,
+  ) {
+    try {
+      const student = req.user as Omit<Account, 'password'>;
+      const result = await this.accountService.updateStudentPassword(
+        student.id,
+        data.newPassword,
+        data.currentPassword,
+      );
+      return {
+        message: 'Student password updated successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     }
   }
 }
