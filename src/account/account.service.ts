@@ -323,6 +323,50 @@ export class AccountService {
     }
   }
 
+  async getStudentSuperVisorList(studentId: string) {
+    try {
+      const targetStudent = await this.prisma.account.findFirst({
+        where: {
+          id: studentId,
+        },
+        include: {
+          AccountInfo: true,
+        },
+      });
+
+      if (targetStudent) {
+        const supervisorList = await this.prisma.account.findMany({
+          where: {
+            FacultyAdmin: {
+              some: {
+                Faculty: {
+                  id: targetStudent.AccountInfo?.facultyId as string,
+                },
+              },
+            },
+          },
+          include: {
+            AccountInfo: true,
+            FacultyAdmin: {
+              include: {
+                Faculty: true,
+              },
+            },
+          },
+        });
+        return supervisorList;
+      } else {
+        throw new HttpException('Student ID not found', HttpStatus.NOT_FOUND);
+      }
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async inviteAdmin(data: AdminInviteDTO) {
     try {
       const existingAdmin = await this.prisma.account.findFirst({

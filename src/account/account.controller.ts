@@ -20,6 +20,8 @@ import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
 import { AccountService } from './account.service';
 import { AdminInviteDTO, StudentRegisterDTO } from './dto';
 import { Request } from 'express';
+import { studentJWTAuthGuard } from 'src/auth/guards/jwt-student-auth.guard';
+import { Account } from '@prisma/client';
 
 @ApiTags('Account')
 @Controller('account')
@@ -227,6 +229,31 @@ export class AccountController {
       const roleList = await this.accountService.getAccountRole();
       return {
         data: roleList,
+        message: 'Account role list fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Student supervisor list provider' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBearerAuth()
+  @Get('student-supervisor-list')
+  async getStudentSupervisorList(@Req() req: Request) {
+    try {
+      const student = req.user as Omit<Account, 'password'>;
+      const supervisorList = await this.accountService.getStudentSuperVisorList(
+        student.id,
+      );
+      return {
+        data: supervisorList,
         message: 'Account role list fetched successfully',
       };
     } catch (err) {

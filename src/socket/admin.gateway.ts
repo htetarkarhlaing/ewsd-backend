@@ -11,12 +11,12 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
-  namespace: 'user',
+  namespace: 'admin',
   cors: {
     origin: '*',
   },
 })
-export class SocketGateway
+export class AdminSocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   constructor(private readonly jwtService: JwtService) {}
@@ -43,13 +43,14 @@ export class SocketGateway
   private addConnectedUser(client: Socket) {
     const clientId = client.id;
     const token = this.extractTokenFromHandshake(client);
+    console.log(token);
 
     if (!token) {
       client.disconnect();
       return;
     }
 
-    const secret = process.env.JWT_ACCESS_TOKEN_PLAYER;
+    const secret = process.env.JWT_ACCESS_TOKEN_ADMIN;
 
     try {
       const payload = this.jwtService.verify(token, { secret });
@@ -61,7 +62,7 @@ export class SocketGateway
       this.activeUsers.get(userId)!.add(clientId);
 
       Logger.log(`✅ User ${userId} added with socket ID ${clientId}`);
-      this.broadcastActivePlayers();
+      this.broadcastActiveStudent();
     } catch (error) {
       Logger.error(
         `❌ Failed to add user with socket ID ${clientId}`,
@@ -83,13 +84,11 @@ export class SocketGateway
         clientIds.delete(clientId);
         Logger.log(`🗑️ Removed socket ${clientId} for user ${userId}`);
 
-        // If no more active connections for the user, remove the user from the Map
         if (clientIds.size === 0) {
           this.activeUsers.delete(userId);
         }
 
-        // Broadcast updated active player list
-        this.broadcastActivePlayers();
+        this.broadcastActiveStudent();
 
         break;
       }
@@ -107,21 +106,12 @@ export class SocketGateway
     }
   }
 
-  oneDeviceAlert(id: string) {
-    const clientIds = this.getTarget(id);
-    for (const clientId of clientIds) {
-      this.server.to(clientId).emit('other-device-login-detected');
-    }
+  @SubscribeMessage('get-active-admin')
+  getActiveAdmin(client: Socket) {
+    client.emit('active-admin-list', this.getAllActiveAdmin());
   }
 
-  // 🔥 Fetch all active players
-  @SubscribeMessage('get-active-players')
-  getActivePlayers(client: Socket) {
-    client.emit('active-players-list', this.getAllActivePlayers());
-  }
-
-  // 🏆 Returns the current list of active players
-  private getAllActivePlayers(): { userId: string; connections: number }[] {
+  private getAllActiveAdmin(): { userId: string; connections: number }[] {
     return Array.from(this.activeUsers.entries()).map(
       ([userId, clientIds]) => ({
         userId,
@@ -130,13 +120,11 @@ export class SocketGateway
     );
   }
 
-  // 📢 Broadcast active players to all clients
-  private broadcastActivePlayers() {
-    this.server.emit('active-players-list', this.getAllActivePlayers());
+  private broadcastActiveStudent() {
+    this.server.emit('active-admin-list', this.getAllActiveAdmin());
   }
 
   private extractTokenFromHandshake(client: Socket): string | null {
-    const authHeader = client.handshake.headers.authorization;
-    return authHeader ? authHeader.split(' ')[1] : null;
+    return client.handshake.auth.token;
   }
 }

@@ -15,7 +15,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ArticleService } from './article.service';
-import { ApiBearerAuth, ApiBody, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+} from '@nestjs/swagger';
 import { studentJWTAuthGuard } from 'src/auth/guards/jwt-student-auth.guard';
 import { articleDraftDTO, articleUploadDTO } from './dto';
 import { Request } from 'express';
@@ -133,6 +138,7 @@ export class ArticleController {
   @UseGuards(studentJWTAuthGuard)
   @ApiBearerAuth()
   @Post('upload-article')
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     type: articleUploadDTO,
     description: 'Student article data',
