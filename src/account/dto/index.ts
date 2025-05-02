@@ -119,3 +119,18 @@ export class updatePasswordSelf {
   @IsNotEmpty()
   currentPassword: string;
 }
+
+export class updateProfileDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty({ type: 'string', format: 'binary', required: true })
+  image: string;
+}
+
+export class StudentUpdateProfile extends updateProfileDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  address: string;
+}

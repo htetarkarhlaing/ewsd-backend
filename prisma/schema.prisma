@@ -23,18 +23,30 @@ model Account {
   accountInfoId   String?         @db.ObjectId
   AccountInfo     AccountInfo?    @relation(fields: [accountInfoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  Faculty           Faculty[]      @relation("createdBy")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  Faculty           Faculty[]         @relation("createdBy")
   FacultyAdmin      FacultyAdmin[]
-  SupervisedArticle Article[]      @relation("supervised")
-  UploadedArticle   Article[]      @relation("uploaded")
+  SupervisedArticle Article[]         @relation("supervised")
+  UploadedArticle   Article[]         @relation("uploaded")
   Event             Event[]
-  Nationality       Nationality[]  @relation("createdBy")
-  Notification      Notification[] @relation("receiver")
-  StudentChatRoom   ChatRoom[]     @relation("student")
-  adminChatRoom     ChatRoom[]     @relation("admin")
-  sendChatMessage   ChatMessage[]  @relation("sender")
+  Nationality       Nationality[]     @relation("createdBy")
+  Notification      Notification[]    @relation("receiver")
+  StudentChatRoom   ChatRoom[]        @relation("student")
+  adminChatRoom     ChatRoom[]        @relation("admin")
+  sendChatMessage   ChatMessage[]     @relation("sender")
+  AccountLoginLog   AccountLoginLog[]
+}
+
+model AccountLoginLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  accountId String?  @db.ObjectId
+  Account   Account? @relation(fields: [accountId], references: [id])
+  ipAddress String?
+  browser   String?
+  geoIp     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AccountInfo {
