@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AdminInviteDTO, StudentRegisterDTO } from './dto';
+import { AdminInviteDTO, GuestRegisterDTO, StudentRegisterDTO } from './dto';
 import { genSaltSync, hashSync } from 'bcrypt';
 import { Request } from 'express';
 import { Account } from '@prisma/client';
@@ -31,6 +31,56 @@ export class AccountService {
     }
 
     return studentIdCode;
+  }
+
+  async guestRegisterHandler(data: GuestRegisterDTO) {
+    try {
+      const existingGuest = await this.prisma.account.findFirst({
+        where: {
+          AND: [{ AccountRoleType: 'GUEST' }, { email: data.email }],
+        },
+      });
+
+      if (existingGuest) {
+        if (existingGuest.AccountStatus === 'ACTIVE') {
+          throw new HttpException(
+            'Guest already exists',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
+      const guest = await this.prisma.account.create({
+        data: {
+          username: data.name,
+          email: data.email,
+          password: hashSync(data.password, genSaltSync()),
+          AccountRoleType: 'GUEST',
+          AccountStatus: 'ACTIVE',
+          AccountInfo: {
+            create: {
+              name: data.name,
+              Faculty: {
+                connect: {
+                  id: data.facultyId,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return guest;
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async getAccountList(

@@ -1,0 +1,38 @@
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { JwtPayload } from '../dto/jwt-payload.interface';
+import { Account } from '@prisma/client';
+import { GuestService } from '../guest.service';
+
+@Injectable()
+export class JwtGuardStrategy extends PassportStrategy(Strategy, 'jwt-guard') {
+  constructor(private readonly guestService: GuestService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: process.env.JWT_ACCESS_TOKEN_GUEST as string,
+    });
+  }
+
+  async validate(payload: JwtPayload): Promise<Omit<Account, 'password'>> {
+    try {
+      const admin = await this.guestService.validateGuestById(payload.id);
+      if (!admin) {
+        throw new HttpException(
+          'Credential not match',
+          HttpStatus.UNAUTHORIZED,
+        );
+      } else {
+        return admin;
+      }
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+}

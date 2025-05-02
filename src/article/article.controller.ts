@@ -28,10 +28,51 @@ import { Account, ArticleStatus } from '@prisma/client';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
 
 @Controller('article')
 export class ArticleController {
   constructor(private readonly articleService: ArticleService) {}
+
+  @ApiOperation({ summary: 'article list admin provider' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @Get('list-by-admin')
+  async getAdminArticleList(
+    @Req() req: Request,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status')
+    status: ArticleStatus | 'ALL',
+    @Query('faculty') faculty?: string,
+    @Query('event') event?: string,
+    @Query('search') search?: string,
+  ) {
+    try {
+      const admin = req.user as Omit<Account, 'password'>;
+      const articleList = await this.articleService.getArticleListByAdminId(
+        admin.id,
+        parseInt(page) || 1,
+        parseInt(limit) || 10,
+        status,
+        faculty,
+        event,
+        search,
+      );
+      return {
+        data: articleList,
+        message: 'Article list fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   @ApiOperation({ summary: 'Student article list list provider' })
   @UseGuards(studentJWTAuthGuard)
@@ -57,6 +98,76 @@ export class ArticleController {
       return {
         data: articleList,
         message: 'Student article list fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Student article detail provider' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBearerAuth()
+  @Get('detail-by-student-id/:id')
+  async getArticleDetailByStudentId(@Param('id') id: string) {
+    try {
+      const articleDetail = await this.articleService.getArticleDetail(id);
+      return {
+        data: articleDetail,
+        message: 'article detail fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Student article detail provider' })
+  @Get('detail-by-public/:id')
+  async getArticleDetail(@Param('id') id: string) {
+    try {
+      const articleDetail = await this.articleService.getArticleDetail(id);
+      return {
+        data: articleDetail,
+        message: 'article detail fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get public article list' })
+  @Get('public-list')
+  async getArticlePublic(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('search') search?: string,
+  ) {
+    try {
+      const articleList = await this.articleService.getArticleList(
+        parseInt(page) || 1,
+        parseInt(limit) || 10,
+        search,
+      );
+      return {
+        data: articleList,
+        message: 'Article list fetched successfully',
       };
     } catch (err) {
       if (err instanceof HttpException) {
