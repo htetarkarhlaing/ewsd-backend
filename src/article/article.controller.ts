@@ -20,6 +20,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { studentJWTAuthGuard } from 'src/auth/guards/jwt-student-auth.guard';
 import { articleDraftDTO, articleUploadDTO } from './dto';
@@ -38,6 +39,30 @@ export class ArticleController {
   @UseGuards(AdminJWTAuthGuard)
   @ApiBearerAuth()
   @Get('list-by-admin')
+  @ApiQuery({
+    name: 'page',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'faculty',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'event',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
   async getAdminArticleList(
     @Req() req: Request,
     @Query('page') page: string,
@@ -154,6 +179,18 @@ export class ArticleController {
 
   @ApiOperation({ summary: 'Get public article list' })
   @Get('public-list')
+  @ApiQuery({
+    name: 'page',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
   async getArticlePublic(
     @Query('page') page: string,
     @Query('limit') limit: string,

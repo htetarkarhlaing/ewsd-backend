@@ -55,5 +55,52 @@ async function main() {
       });
     }
   }
+
+  const addedNotification = await prisma.notification.createMany({
+    data: [
+      {
+        title: `test 1`,
+        content: `test desc 1`,
+        studentId: '68123581d1050d45078ac4a4',
+      },
+      {
+        title: `test 2`,
+        content: `test desc 2`,
+        studentId: '68123581d1050d45078ac4a4',
+      },
+      {
+        title: `test 3`,
+        content: `test desc 3`,
+        studentId: '68123581d1050d45078ac4a4',
+      },
+      {
+        title: `test 4`,
+        content: `test desc 4`,
+        studentId: '68123581d1050d45078ac4a4',
+      },
+      {
+        title: `test 1`,
+        content: `test desc 1`,
+        studentId: '68123581d1050d45078ac4a4',
+      },
+      {
+        title: `test 2`,
+        content: `test desc 2`,
+        studentId: '68123581d1050d45078ac4a4',
+      },
+      {
+        title: `test 3`,
+        content: `test desc 3`,
+        studentId: '68123581d1050d45078ac4a4',
+      },
+      {
+        title: `test 4`,
+        content: `test desc 4`,
+        studentId: '68123581d1050d45078ac4a4',
+      },
+    ],
+  });
+
+  console.log(addedNotification);
 }
 void main();

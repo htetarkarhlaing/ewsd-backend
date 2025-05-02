@@ -1,11 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AdminInviteDTO, GuestRegisterDTO, StudentRegisterDTO } from './dto';
-import { genSaltSync, hashSync } from 'bcrypt';
+import { compareSync, genSaltSync, hashSync } from 'bcrypt';
 import { Request } from 'express';
 import { Account } from '@prisma/client';
 import { MailService } from 'src/helper/Mailer';
 import { AdminInvitationTemplate } from 'src/helper/template/AdminInvitation';
+import { ApprovedStudentRegister } from 'src/helper/template/ApprovedStudentRegister';
+import { RejectStudentRegister } from 'src/helper/template/RejectStudentRegister';
+import { StudentPasswordReset } from 'src/helper/template/StudentPasswordReset';
 
 @Injectable()
 export class AccountService {
@@ -506,6 +509,169 @@ export class AccountService {
       return admin;
     } catch (err) {
       console.log(err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async manageStudentRegister(
+    namespace: 'APPROVE' | 'REJECT',
+    id: string,
+    reason?: string,
+  ) {
+    try {
+      const updatedStudent = await this.prisma.account.update({
+        where: {
+          id: id,
+        },
+        data: {
+          AccountStatus: namespace === 'APPROVE' ? 'ACTIVE' : 'REJECTED',
+        },
+        include: {
+          AccountInfo: true,
+        },
+      });
+
+      if (namespace === 'APPROVE') {
+        void this.mailer.sendMail(
+          updatedStudent.email,
+          updatedStudent.AccountInfo?.name as string,
+          'Approved student registration',
+          ApprovedStudentRegister(),
+        );
+      } else {
+        void this.mailer.sendMail(
+          updatedStudent.email,
+          updatedStudent.AccountInfo?.name as string,
+          'Rejected student registration',
+          RejectStudentRegister(reason || 'Unaccepted'),
+        );
+      }
+
+      return updatedStudent;
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async toggleStudent(studentId: string) {
+    try {
+      const existingStudent = await this.prisma.account.findUnique({
+        where: { id: studentId },
+      });
+
+      if (!existingStudent) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+
+      const updatedStudent = await this.prisma.account.update({
+        where: { id: studentId },
+        data: {
+          AccountStatus:
+            existingStudent.AccountStatus === 'SUSPENDED'
+              ? 'ACTIVE'
+              : 'SUSPENDED',
+        },
+      });
+
+      return updatedStudent;
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async deleteStudent(studentId: string) {
+    try {
+      const existingStudent = await this.prisma.account.findUnique({
+        where: { id: studentId },
+      });
+
+      if (!existingStudent) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+
+      const updatedStudent = await this.prisma.account.update({
+        where: { id: studentId },
+        data: {
+          AccountStatus: 'PERMANENTLY_DELETED',
+        },
+      });
+
+      return updatedStudent;
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async updateStudentPassword(
+    studentId: string,
+    newPassword: string,
+    currentPassword?: string,
+  ) {
+    try {
+      const existingStudent = await this.prisma.account.findUnique({
+        where: { id: studentId },
+        include: {
+          AccountInfo: true,
+        },
+      });
+
+      if (!existingStudent) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+
+      if (currentPassword) {
+        if (compareSync(currentPassword, existingStudent.password)) {
+          const hashedPassword = hashSync(newPassword, genSaltSync());
+
+          await this.prisma.account.update({
+            where: { id: studentId },
+            data: { password: hashedPassword },
+          });
+
+          return {
+            message: 'Student password updated successfully!',
+            data: null,
+          };
+        } else {
+          throw new HttpException('Wrong password', HttpStatus.BAD_REQUEST);
+        }
+      } else {
+        const hashedPassword = hashSync(newPassword, genSaltSync());
+
+        await this.prisma.account.update({
+          where: { id: studentId },
+          data: { password: hashedPassword },
+        });
+
+        void this.mailer.sendMail(
+          existingStudent.email,
+          existingStudent.AccountInfo?.name as string,
+          'Student password reset by administrator',
+          StudentPasswordReset(existingStudent.email, newPassword),
+        );
+
+        return {
+          message: 'Student password updated successfully!',
+          data: null,
+        };
+      }
+    } catch (err) {
+      console.error(err);
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,
