@@ -1,6 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AdminInviteDTO, GuestRegisterDTO, StudentRegisterDTO } from './dto';
+import {
+  AdminInviteDTO,
+  GuestRegisterDTO,
+  StudentRegisterDTO,
+  StudentUpdateProfile,
+} from './dto';
 import { compareSync, genSaltSync, hashSync } from 'bcrypt';
 import { Request } from 'express';
 import { Account } from '@prisma/client';
@@ -274,6 +279,31 @@ export class AccountService {
         limit,
         totalPages: Math.ceil(total / limit),
       };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getAccountLoginRecord(id: string) {
+    try {
+      const loginRecords = await this.prisma.accountLoginLog.findMany({
+        where: {
+          accountId: id,
+        },
+        take: 20,
+        skip: 0,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      return loginRecords;
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
@@ -669,6 +699,57 @@ export class AccountService {
           message: 'Student password updated successfully!',
           data: null,
         };
+      }
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async updateProfile(
+    id: string,
+    data: StudentUpdateProfile,
+    image: Express.Multer.File,
+    req: Request,
+  ) {
+    try {
+      const adminAccount = await this.prisma.account.findFirst({
+        where: {
+          id,
+        },
+      });
+
+      if (adminAccount && adminAccount.accountInfoId) {
+        const updatedProfile = await this.prisma.accountInfo.update({
+          where: {
+            id: adminAccount.accountInfoId,
+          },
+          data: {
+            name: data.name,
+            ...(image && {
+              Avatar: {
+                create: {
+                  name: image.originalname,
+                  path:
+                    process.env.NODE_ENV === 'development'
+                      ? `${req.protocol}://localhost:8000/files/${image.filename}`
+                      : `${req.protocol}s://${req.hostname}/files/${image.filename}`,
+                  type: image.mimetype,
+                },
+              },
+            }),
+            ...(data.address && {
+              address: data.address,
+            }),
+          },
+        });
+
+        return updatedProfile;
+      } else {
+        throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
     } catch (err) {
       console.error(err);

@@ -10,11 +10,14 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiQuery,
   ApiTags,
@@ -26,12 +29,17 @@ import {
   GuestRegisterDTO,
   manageStudentRegisterDTO,
   StudentRegisterDTO,
+  StudentUpdateProfile,
   updatePasswordByAdmin,
   updatePasswordSelf,
+  updateProfileDto,
 } from './dto';
 import { Request } from 'express';
 import { studentJWTAuthGuard } from 'src/auth/guards/jwt-student-auth.guard';
 import { Account } from '@prisma/client';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @ApiTags('Account')
 @Controller('account')
@@ -354,7 +362,7 @@ export class AccountController {
     }
   }
 
-  @Delete('delete/:id')
+  @Delete('student-delete/:id')
   @ApiOperation({ summary: 'Delete a student account (permanently)' })
   @UseGuards(AdminJWTAuthGuard)
   @ApiBearerAuth()
@@ -377,8 +385,8 @@ export class AccountController {
     }
   }
 
-  @Delete('toggle-lock/:id')
-  @ApiOperation({ summary: 'Toggle a player (suspended)' })
+  @Delete('student-toggle-lock/:id')
+  @ApiOperation({ summary: 'Toggle a student (suspended)' })
   @UseGuards(AdminJWTAuthGuard)
   @ApiBearerAuth()
   async toggleStudent(@Param('id') studentId: string) {
@@ -400,7 +408,7 @@ export class AccountController {
     }
   }
 
-  @Post('update-password/:id')
+  @Post('student-update-password/:id')
   @ApiOperation({ summary: 'Update student password' })
   @UseGuards(AdminJWTAuthGuard)
   @ApiBearerAuth()
@@ -432,7 +440,7 @@ export class AccountController {
     }
   }
 
-  @Patch('update-password')
+  @Patch('student-update-password')
   @ApiOperation({ summary: 'Update student password self' })
   @UseGuards(studentJWTAuthGuard)
   @ApiBody({
@@ -452,6 +460,270 @@ export class AccountController {
       );
       return {
         message: 'Student password updated successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Delete('admin-delete/:id')
+  @ApiOperation({ summary: 'Delete a admin account (permanently)' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  async deleteAdmin(@Param('id') studentId: string) {
+    try {
+      const result = await this.accountService.deleteStudent(studentId);
+      return {
+        message: 'Admin deleted successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Delete('admin-toggle-lock/:id')
+  @ApiOperation({ summary: 'Toggle a admin (suspended)' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  async toggleAdmin(@Param('id') studentId: string) {
+    try {
+      const result = await this.accountService.toggleStudent(studentId);
+      return {
+        message: 'Admin account updated successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Post('admin-update-password/:id')
+  @ApiOperation({ summary: 'Update admin password' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiBody({
+    type: updatePasswordByAdmin,
+  })
+  async updateAdminPassword(
+    @Param('id') student: string,
+    @Body() data: updatePasswordByAdmin,
+  ) {
+    try {
+      const result = await this.accountService.updateStudentPassword(
+        student,
+        data.newPassword,
+      );
+      return {
+        message: 'Admin password updated successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Patch('admin-update-password')
+  @ApiOperation({ summary: 'Update admin password self' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBody({
+    type: updatePasswordSelf,
+  })
+  @ApiBearerAuth()
+  async updateAdminPasswordSelf(
+    @Body() data: updatePasswordSelf,
+    @Req() req: Request,
+  ) {
+    try {
+      const student = req.user as Omit<Account, 'password'>;
+      const result = await this.accountService.updateStudentPassword(
+        student.id,
+        data.newPassword,
+        data.currentPassword,
+      );
+      return {
+        message: 'Admin password updated successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @ApiOperation({ summary: 'account login log list provider' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBearerAuth()
+  @Get('student-login-history')
+  async getStudentAccountLogin(@Req() req: Request) {
+    try {
+      const account = req.user as Omit<Account, 'password'>;
+      const guestList = await this.accountService.getAccountLoginRecord(
+        account.id,
+      );
+      return {
+        data: guestList,
+        message: 'account login record fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'account login log list provider' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @Get('admin-login-history')
+  async getAdminAccountLogin(@Req() req: Request) {
+    try {
+      const account = req.user as Omit<Account, 'password'>;
+      const loginRecord = await this.accountService.getAccountLoginRecord(
+        account.id,
+      );
+      return {
+        data: loginRecord,
+        message: 'account login record fetched successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Patch('student-update-profile')
+  @ApiOperation({ summary: 'Update student profile' })
+  @UseGuards(studentJWTAuthGuard)
+  @ApiBody({
+    type: StudentUpdateProfile,
+  })
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (_, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          return cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  async updateProfileStudent(
+    @Body() data: StudentUpdateProfile,
+    @Req() req: Request,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    try {
+      const student = req.user as Omit<Account, 'password'>;
+      const result = await this.accountService.updateProfile(
+        student.id,
+        data,
+        image,
+        req,
+      );
+      return {
+        message: 'Student profile updated successfully',
+        data: result,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Patch('admin-update-profile')
+  @ApiOperation({ summary: 'Update admin profile' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBody({
+    type: updateProfileDto,
+  })
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (_, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          return cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  async updateProfileAdmin(
+    @Body() data: updateProfileDto,
+    @Req() req: Request,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    try {
+      const student = req.user as Omit<Account, 'password'>;
+      const result = await this.accountService.updateProfile(
+        student.id,
+        data as StudentUpdateProfile,
+        image,
+        req,
+      );
+      return {
+        message: 'Account profile updated successfully',
         data: result,
       };
     } catch (err) {
