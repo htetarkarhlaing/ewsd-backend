@@ -195,6 +195,7 @@ export class ArticleService {
             ],
           },
           include: {
+            ArticleLog: true,
             Document: true,
             Thumbnail: true,
             Event: {
@@ -221,6 +222,11 @@ export class ArticleService {
         await this.prisma.article.count({
           where: {
             AND: [
+              {
+                ArticleStatus: {
+                  not: 'PERMANENTLY_DELETED',
+                },
+              },
               {
                 UploadedBy: {
                   id,

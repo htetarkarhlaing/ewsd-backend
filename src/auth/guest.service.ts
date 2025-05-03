@@ -55,7 +55,7 @@ export class GuestService {
             ],
           },
           {
-            AccountRoleType: 'STUDENT',
+            AccountRoleType: 'GUEST',
           },
         ],
       },

@@ -7,7 +7,7 @@ import { GuestService } from '../guest.service';
 @Injectable()
 export class guardLocalStrategy extends PassportStrategy(
   Strategy,
-  'local-guard',
+  'local-guest',
 ) {
   constructor(private guestService: GuestService) {
     super({
