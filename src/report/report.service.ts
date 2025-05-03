@@ -61,4 +61,82 @@ export class ReportService {
       );
     }
   }
+
+  async fetchFacultyPopulation() {
+    try {
+      const facultyList = await this.prisma.faculty.findMany({
+        where: {
+          Status: 'ACTIVE',
+        },
+        select: {
+          id: true,
+          name: true,
+          AccountInfo: {
+            where: {
+              Account: {
+                every: {
+                  AND: [
+                    {
+                      AccountRoleType: 'STUDENT',
+                    },
+                    {
+                      AccountStatus: 'ACTIVE',
+                    },
+                  ],
+                },
+              },
+            },
+            select: {
+              id: true,
+            },
+          },
+          FacultyAdmin: {
+            where: {
+              AND: [
+                {
+                  Account: {
+                    AND: [
+                      {
+                        AccountRoleType: 'ADMIN',
+                      },
+                      {
+                        AccountStatus: 'ACTIVE',
+                      },
+                    ],
+                  },
+                },
+                {
+                  Account: {
+                    AccountRole: {
+                      permissions: 'coordinator',
+                    },
+                  },
+                },
+              ],
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      const formattedFacultyList = facultyList.map((faculty) => {
+        return {
+          id: faculty.id,
+          name: faculty.name,
+          coordinator: faculty.FacultyAdmin.length,
+          student: faculty.AccountInfo.length,
+        };
+      });
+
+      return formattedFacultyList;
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

@@ -65,6 +65,7 @@ export class ArticleService {
             ],
           },
           include: {
+            ArticleLog: true,
             Document: true,
             Thumbnail: true,
             Event: {
@@ -286,12 +287,7 @@ export class ArticleService {
               },
             },
           },
-          ArticleLog: {
-            take: 1,
-            orderBy: {
-              createdAt: 'desc',
-            },
-          },
+          ArticleLog: true,
         },
       });
       return articleData;
