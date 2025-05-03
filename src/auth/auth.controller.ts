@@ -158,6 +158,7 @@ export class AuthController {
         message: 'Guest login successful',
       };
     } catch (error) {
+      console.log(error);
       if (error instanceof HttpException) {
         throw error;
       }

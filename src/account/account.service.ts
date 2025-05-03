@@ -68,11 +68,7 @@ export class AccountService {
           AccountInfo: {
             create: {
               name: data.name,
-              Faculty: {
-                connect: {
-                  id: data.facultyId,
-                },
-              },
+              facultyId: data.facultyId,
             },
           },
         },
@@ -80,6 +76,7 @@ export class AccountService {
 
       return guest;
     } catch (err) {
+      console.log(err);
       if (err instanceof HttpException) {
         throw err;
       }
