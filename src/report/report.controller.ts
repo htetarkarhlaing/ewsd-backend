@@ -3,11 +3,18 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Param,
+  Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ReportService } from './report.service';
-import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
+import { Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as archiver from 'archiver';
 
 @Controller('report')
 export class ReportController {
@@ -58,16 +65,123 @@ export class ReportController {
     }
   }
 
-  @ApiOperation({ summary: 'Faculty publication report' })
-  @Get('faculty-publication')
-  async facultyPublicationReport() {
+  // @ApiOperation({ summary: 'Faculty publication report' })
+  // @Get('faculty-publication')
+  // async facultyPublicationReport() {
+  //   try {
+  //     const facultyPublicationData =
+  //       await this.reportService.fetchFacultyPublication();
+  //     return {
+  //       data: facultyPublicationData,
+  //       message: 'Faculty publication data successfully',
+  //     };
+  //   } catch (err) {
+  //     if (err instanceof HttpException) {
+  //       throw err;
+  //     }
+  //     throw new HttpException(
+  //       'Internal server error',
+  //       HttpStatus.INTERNAL_SERVER_ERROR,
+  //     );
+  //   }
+  // }
+
+  @ApiOperation({ summary: 'Download event article list zip' })
+  @Get('download-zipped-event-article')
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiQuery({
+    name: 'eventId',
+    required: true,
+  })
+  async eventBasedArticleZipDownload(
+    @Res() res: Response,
+    @Query()
+    query: {
+      eventId: string;
+    },
+  ) {
     try {
-      const facultyPublicationData =
-        await this.reportService.fetchFacultyPublication();
-      return {
-        data: facultyPublicationData,
-        message: 'Faculty publication data successfully',
-      };
+      const fileNames: string[] = await this.reportService.articleWithEventId(
+        query.eventId,
+      );
+
+      if (!fileNames || fileNames.length === 0) {
+        throw new HttpException(
+          'There is no article available',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=${query.eventId}.zip`,
+      );
+
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      archive.on('error', (err) => {
+        throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      });
+
+      archive.pipe(res);
+
+      const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'articles');
+
+      for (const fileName of fileNames) {
+        const filePath = path.join(uploadDir, fileName);
+        if (fs.existsSync(filePath)) {
+          archive.file(filePath, { name: fileName });
+        }
+      }
+
+      await archive.finalize();
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Download article zip' })
+  @Get('download-zipped-article/:id')
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  async articleZipDownload(@Res() res: Response, @Param('id') id: string) {
+    try {
+      const fileNames: string[] = await this.reportService.findArticleById(id);
+
+      if (!fileNames || fileNames.length === 0) {
+        throw new HttpException(
+          'There is no article available',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename=${id}.zip`);
+
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      archive.on('error', (err) => {
+        throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      });
+
+      archive.pipe(res);
+
+      const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'articles');
+
+      for (const fileName of fileNames) {
+        const filePath = path.join(uploadDir, fileName);
+        if (fs.existsSync(filePath)) {
+          archive.file(filePath, { name: fileName });
+        }
+      }
+
+      await archive.finalize();
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
