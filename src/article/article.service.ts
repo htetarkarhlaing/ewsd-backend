@@ -18,6 +18,27 @@ export class ArticleService {
     search?: string,
   ) {
     try {
+      const currentAdmin = await this.prisma.account.findFirst({
+        where: {
+          id,
+        },
+        select: {
+          AccountRole: {
+            select: {
+              permissions: true,
+            },
+          },
+          FacultyAdmin: {
+            select: {
+              facultyId: true,
+            },
+          },
+        },
+      });
+
+      const isCoordinator =
+        currentAdmin && currentAdmin.AccountRole?.permissions === 'coordinator';
+
       const skip = (page - 1) * limit;
       const [articles, total] = await Promise.all([
         await this.prisma.article.findMany({
@@ -47,15 +68,26 @@ export class ArticleService {
                     }),
               },
               {
-                ...(faculty && {
-                  UploadedBy: {
-                    AccountInfo: {
-                      Faculty: {
-                        id: faculty,
+                ...(faculty
+                  ? {
+                      UploadedBy: {
+                        AccountInfo: {
+                          Faculty: {
+                            id: faculty,
+                          },
+                        },
                       },
-                    },
-                  },
-                }),
+                    }
+                  : isCoordinator &&
+                    currentAdmin?.FacultyAdmin[0]?.facultyId && {
+                      UploadedBy: {
+                        AccountInfo: {
+                          Faculty: {
+                            id: currentAdmin?.FacultyAdmin[0]?.facultyId,
+                          },
+                        },
+                      },
+                    }),
               },
               {
                 ...(event && {
@@ -65,7 +97,11 @@ export class ArticleService {
             ],
           },
           include: {
-            ArticleLog: true,
+            ArticleLog: {
+              orderBy: {
+                createdAt: 'desc',
+              },
+            },
             Document: true,
             Thumbnail: true,
             Event: {
@@ -86,7 +122,7 @@ export class ArticleService {
           skip,
           take: limit,
           orderBy: {
-            createdAt: 'desc',
+            updatedAt: 'desc',
           },
         }),
         await this.prisma.article.count({
@@ -116,15 +152,26 @@ export class ArticleService {
                     }),
               },
               {
-                ...(faculty && {
-                  UploadedBy: {
-                    AccountInfo: {
-                      Faculty: {
-                        id: faculty,
+                ...(faculty
+                  ? {
+                      UploadedBy: {
+                        AccountInfo: {
+                          Faculty: {
+                            id: faculty,
+                          },
+                        },
                       },
-                    },
-                  },
-                }),
+                    }
+                  : isCoordinator &&
+                    currentAdmin?.FacultyAdmin[0]?.facultyId && {
+                      UploadedBy: {
+                        AccountInfo: {
+                          Faculty: {
+                            id: currentAdmin?.FacultyAdmin[0]?.facultyId,
+                          },
+                        },
+                      },
+                    }),
               },
               {
                 ...(event && {
@@ -195,7 +242,11 @@ export class ArticleService {
             ],
           },
           include: {
-            ArticleLog: true,
+            ArticleLog: {
+              orderBy: {
+                createdAt: 'desc',
+              },
+            },
             Document: true,
             Thumbnail: true,
             Event: {
@@ -216,7 +267,7 @@ export class ArticleService {
           skip,
           take: limit,
           orderBy: {
-            createdAt: 'desc',
+            updatedAt: 'desc',
           },
         }),
         await this.prisma.article.count({
