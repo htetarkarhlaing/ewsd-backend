@@ -21,7 +21,6 @@ export class ReportService {
               ],
             },
           }),
-
           await this.prisma.account.count({
             where: {
               AND: [
@@ -34,7 +33,6 @@ export class ReportService {
               ],
             },
           }),
-
           await this.prisma.faculty.count({
             where: {
               Status: 'ACTIVE',
@@ -131,6 +129,59 @@ export class ReportService {
       });
 
       return formattedFacultyList;
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async fetchFacultyPublication() {
+    try {
+      const eventList = await this.prisma.event.findMany({
+        where: {
+          OR: [
+            {
+              Status: 'COMPLETED',
+            },
+            {
+              Status: 'ACTIVE',
+            },
+          ],
+        },
+        select: {
+          id: true,
+          title: true,
+          startDate: true,
+          endDate: true,
+          Article: {
+            where: {
+              OR: [
+                {
+                  ArticleStatus: 'APPROVED',
+                },
+                {
+                  ArticleStatus: 'PENDING',
+                },
+              ],
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      // const formattedEventList = EventList.map((event) => {
+      //   return {
+      //     id: event.id,
+      //     title: event.title,
+      //   };
+      // });
+
+      return eventList;
     } catch (err) {
       console.log(err);
       throw new HttpException(

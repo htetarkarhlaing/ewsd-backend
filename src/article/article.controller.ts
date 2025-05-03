@@ -438,7 +438,7 @@ export class ArticleController {
   }
 
   @ApiOperation({ summary: 'Approve article' })
-  @UseGuards(studentJWTAuthGuard)
+  @UseGuards(AdminJWTAuthGuard)
   @ApiBearerAuth()
   @ApiBody({
     type: articleFeedbackDTO,
@@ -472,7 +472,7 @@ export class ArticleController {
   }
 
   @ApiOperation({ summary: 'Reject article' })
-  @UseGuards(studentJWTAuthGuard)
+  @UseGuards(AdminJWTAuthGuard)
   @ApiBearerAuth()
   @ApiBody({
     type: articleFeedbackDTO,
@@ -506,7 +506,7 @@ export class ArticleController {
   }
 
   @ApiOperation({ summary: 'Feedback article' })
-  @UseGuards(studentJWTAuthGuard)
+  @UseGuards(AdminJWTAuthGuard)
   @ApiBearerAuth()
   @ApiBody({
     type: articleFeedbackDTO,

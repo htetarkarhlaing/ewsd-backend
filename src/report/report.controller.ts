@@ -57,4 +57,25 @@ export class ReportController {
       );
     }
   }
+
+  @ApiOperation({ summary: 'Faculty publication report' })
+  @Get('faculty-publication')
+  async facultyPublicationReport() {
+    try {
+      const facultyPublicationData =
+        await this.reportService.fetchFacultyPublication();
+      return {
+        data: facultyPublicationData,
+        message: 'Faculty publication data successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
