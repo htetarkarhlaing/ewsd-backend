@@ -138,50 +138,32 @@ export class ReportService {
     }
   }
 
-  async fetchFacultyPublication() {
+  fetchFacultyPublication() {
     try {
-      const eventList = await this.prisma.event.findMany({
-        where: {
-          OR: [
-            {
-              Status: 'COMPLETED',
-            },
-            {
-              Status: 'ACTIVE',
-            },
-          ],
-        },
-        select: {
-          id: true,
-          title: true,
-          startDate: true,
-          endDate: true,
-          Article: {
-            where: {
-              OR: [
-                {
-                  ArticleStatus: 'APPROVED',
-                },
-                {
-                  ArticleStatus: 'PENDING',
-                },
-              ],
-            },
-            select: {
-              id: true,
-            },
-          },
-        },
-      });
-
-      // const formattedEventList = EventList.map((event) => {
+      // // 1. Group articles by eventId and facultyId with counts
+      // const articleCounts = await this.prisma.article.groupBy({
+      //   by: ['eventId', 'facultyId'],
+      //   _count: {
+      //     id: true,
+      //   },
+      // });
+      // // 2. Calculate total articles per event
+      // const totalByEvent: Record<string, number> = {};
+      // articleCounts.forEach(({ eventId, _count }: { eventId: string }) => {
+      //   totalByEvent[eventId] = (totalByEvent[eventId] || 0) + _count.id;
+      // });
+      // // 3. Add percentages
+      // const result = articleCounts.map(({ eventId, facultyId, _count }) => {
+      //   const total = totalByEvent[eventId];
+      //   const percentage = total > 0 ? (_count.id / total) * 100 : 0;
       //   return {
-      //     id: event.id,
-      //     title: event.title,
+      //     eventId,
+      //     facultyId,
+      //     contributionCount: _count.id,
+      //     contributionPercentage: Number(percentage.toFixed(2)),
       //   };
       // });
-
-      return eventList;
+      // return result;
     } catch (err) {
       console.log(err);
       throw new HttpException(
@@ -189,5 +171,60 @@ export class ReportService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async articleWithEventId(id: string) {
+    const articleList = await this.prisma.article.findMany({
+      where: {
+        AND: [
+          {
+            ArticleStatus: 'APPROVED',
+          },
+          {
+            eventId: id,
+          },
+        ],
+      },
+      select: {
+        Document: {
+          select: {
+            path: true,
+          },
+        },
+      },
+    });
+    const formattedList: string[] = [];
+    articleList.forEach((article) => {
+      const filename = article.Document?.path?.split('/').pop() || null;
+      if (filename !== null) {
+        formattedList.push(filename);
+      }
+    });
+
+    return formattedList;
+  }
+
+  async findArticleById(id: string) {
+    const articleList = await this.prisma.article.findMany({
+      where: {
+        id,
+      },
+      select: {
+        Document: {
+          select: {
+            path: true,
+          },
+        },
+      },
+    });
+    const formattedList: string[] = [];
+    articleList.forEach((article) => {
+      const filename = article.Document?.path?.split('/').pop() || null;
+      if (filename !== null) {
+        formattedList.push(filename);
+      }
+    });
+
+    return formattedList;
   }
 }
