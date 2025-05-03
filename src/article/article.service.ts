@@ -394,6 +394,8 @@ export class ArticleService {
   async saveDraftArticle(
     data: articleDraftDTO,
     user: Omit<Account, 'password'>,
+    req: Request,
+    thumbnail?: Express.Multer.File,
   ) {
     try {
       const studentFaculty = await this.prisma.accountInfo.findFirst({
@@ -422,6 +424,18 @@ export class ArticleService {
                 id: studentFaculty.facultyId as string,
               },
             },
+            ...(thumbnail && {
+              Thumbnail: {
+                create: {
+                  name: thumbnail.originalname,
+                  path:
+                    process.env.NODE_ENV === 'development'
+                      ? `${req.protocol}://localhost:8000/files/${thumbnail.filename}`
+                      : `${req.protocol}s://${req.hostname}/files/${thumbnail.filename}`,
+                  type: thumbnail.mimetype,
+                },
+              },
+            }),
           },
         });
 
@@ -440,6 +454,8 @@ export class ArticleService {
     data: articleDraftDTO,
     user: Omit<Account, 'password'>,
     id: string,
+    req: Request,
+    thumbnail?: Express.Multer.File,
   ) {
     try {
       const studentFaculty = await this.prisma.accountInfo.findFirst({
@@ -460,6 +476,18 @@ export class ArticleService {
           data: {
             title: data.title,
             content: data.content,
+            ...(thumbnail && {
+              Thumbnail: {
+                create: {
+                  name: thumbnail.originalname,
+                  path:
+                    process.env.NODE_ENV === 'development'
+                      ? `${req.protocol}://localhost:8000/files/${thumbnail.filename}`
+                      : `${req.protocol}s://${req.hostname}/files/${thumbnail.filename}`,
+                  type: thumbnail.mimetype,
+                },
+              },
+            }),
           },
         });
 

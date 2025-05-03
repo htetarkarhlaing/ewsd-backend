@@ -11,6 +11,9 @@ export class articleDraftDTO {
   @IsString()
   @IsNotEmpty()
   content: string;
+
+  @ApiProperty({ type: 'string', format: 'binary', required: false })
+  thumbnail: string;
 }
 
 export class articleUploadDTO {

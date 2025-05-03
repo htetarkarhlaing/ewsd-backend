@@ -10,6 +10,7 @@ import {
   Put,
   Query,
   Req,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -26,7 +27,10 @@ import { studentJWTAuthGuard } from 'src/auth/guards/jwt-student-auth.guard';
 import { articleDraftDTO, articleFeedbackDTO, articleUploadDTO } from './dto';
 import { Request } from 'express';
 import { Account, ArticleStatus } from '@prisma/client';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { AdminJWTAuthGuard } from 'src/auth/guards/jwt-admin-auth.guard';
@@ -221,16 +225,37 @@ export class ArticleController {
   @UseGuards(studentJWTAuthGuard)
   @ApiBearerAuth()
   @Post('save-as-draft')
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     type: articleDraftDTO,
     description: 'Student registration data',
   })
-  async createDraftArticle(@Body() data: articleDraftDTO, @Req() req: Request) {
+  @UseInterceptors(
+    FileInterceptor('thumbnail', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (_, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          return cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  async createDraftArticle(
+    @Body() data: articleDraftDTO,
+    @Req() req: Request,
+    @UploadedFile() thumbnail: Express.Multer.File,
+  ) {
     try {
       const student = req.user as Omit<Account, 'password'>;
       const draftArticle = await this.articleService.saveDraftArticle(
         data,
         student,
+        req,
+        thumbnail,
       );
       return {
         data: draftArticle,
@@ -250,15 +275,31 @@ export class ArticleController {
   @ApiOperation({ summary: 'Update draft article' })
   @UseGuards(studentJWTAuthGuard)
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @Put('update-draft/:id')
   @ApiBody({
     type: articleDraftDTO,
     description: 'Student article data',
   })
+  @UseInterceptors(
+    FileInterceptor('thumbnail', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (_, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          return cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
   async updateDraftArticle(
     @Body() data: articleDraftDTO,
     @Req() req: Request,
     @Param('id') id: string,
+    @UploadedFile() thumbnail: Express.Multer.File,
   ) {
     try {
       const student = req.user as Omit<Account, 'password'>;
@@ -266,6 +307,8 @@ export class ArticleController {
         data,
         student,
         id,
+        req,
+        thumbnail,
       );
       return {
         data: draftArticle,
