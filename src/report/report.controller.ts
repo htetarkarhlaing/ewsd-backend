@@ -34,4 +34,27 @@ export class ReportController {
       );
     }
   }
+
+  @ApiOperation({ summary: 'Faculty population report' })
+  @UseGuards(AdminJWTAuthGuard)
+  @ApiBearerAuth()
+  @Get('faculty-population')
+  async facultyPopulationReport() {
+    try {
+      const facultyPopulationData =
+        await this.reportService.fetchFacultyPopulation();
+      return {
+        data: facultyPopulationData,
+        message: 'Faculty population data successfully',
+      };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
