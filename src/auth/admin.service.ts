@@ -180,6 +180,12 @@ export class AdminService {
           id: account.id,
         },
         include: {
+          AccountLoginLog: {
+            take: 1,
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
           AccountInfo: {
             include: {
               Avatar: true,
