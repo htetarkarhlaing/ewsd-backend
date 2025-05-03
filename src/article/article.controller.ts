@@ -379,9 +379,10 @@ export class ArticleController {
 
       return {
         data: draftArticle,
-        message: 'Student article saved as draft successfully',
+        message: 'Student article updated successfully',
       };
     } catch (err) {
+      console.log(err);
       if (err instanceof HttpException) {
         throw err;
       }

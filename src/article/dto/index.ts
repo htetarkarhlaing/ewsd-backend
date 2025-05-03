@@ -22,10 +22,10 @@ export class articleUploadDTO {
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsString()
-  @IsNotEmpty()
-  content: string;
+  @IsOptional()
+  content?: string;
 
   @ApiProperty()
   @IsString()
