@@ -183,6 +183,7 @@ export class AuthController {
         message: 'Admin info successfully',
       };
     } catch (err) {
+      console.log(err);
       if (err instanceof HttpException) {
         throw err;
       }

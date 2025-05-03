@@ -6,7 +6,7 @@ import { Account } from '@prisma/client';
 import { GuestService } from '../guest.service';
 
 @Injectable()
-export class JwtGuardStrategy extends PassportStrategy(Strategy, 'jwt-guard') {
+export class JwtGuardStrategy extends PassportStrategy(Strategy, 'jwt-guest') {
   constructor(private readonly guestService: GuestService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
