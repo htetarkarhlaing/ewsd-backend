@@ -37,14 +37,12 @@ export class StudentSocketGateway
 
   handleConnection(client: Socket) {
     this.addConnectedUser(client);
-    Logger.log(`🟢 Client with socket ID: ${client.id} connected.`);
+    Logger.log(`🟢 Student Client with socket ID: ${client.id} connected.`);
   }
 
   private addConnectedUser(client: Socket) {
-    console.log(client.id);
     const clientId = client.id;
     const token = this.extractTokenFromHandshake(client);
-    console.log(token);
 
     if (!token) {
       client.disconnect();
@@ -55,7 +53,6 @@ export class StudentSocketGateway
 
     try {
       const payload = this.jwtService.verify(token, { secret });
-      console.log(payload);
       const userId = payload.id;
       if (!this.activeUsers.has(userId)) {
         this.activeUsers.set(userId, new Set());
