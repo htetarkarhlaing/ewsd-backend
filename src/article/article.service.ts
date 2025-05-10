@@ -97,6 +97,7 @@ export class ArticleService {
             ],
           },
           include: {
+            Faculty: true,
             ArticleLog: {
               orderBy: {
                 createdAt: 'desc',
@@ -110,6 +111,15 @@ export class ArticleService {
               },
             },
             SupervisedBy: {
+              include: {
+                AccountInfo: {
+                  include: {
+                    Avatar: true,
+                  },
+                },
+              },
+            },
+            UploadedBy: {
               include: {
                 AccountInfo: {
                   include: {

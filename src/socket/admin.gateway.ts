@@ -37,13 +37,12 @@ export class AdminSocketGateway
 
   handleConnection(client: Socket) {
     this.addConnectedUser(client);
-    Logger.log(`🟢 Client with socket ID: ${client.id} connected.`);
+    Logger.log(`🟢 Admin Client with socket ID: ${client.id} connected.`);
   }
 
   private addConnectedUser(client: Socket) {
     const clientId = client.id;
     const token = this.extractTokenFromHandshake(client);
-    console.log(token);
 
     if (!token) {
       client.disconnect();

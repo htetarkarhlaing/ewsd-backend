@@ -107,8 +107,19 @@ export class AdminService {
 
   async loginService(
     admin: Omit<Account, 'password'>,
+    ip: string,
+    browser: string,
+    geoIp: string,
   ): Promise<{ accessToken: string; refreshToken: string } | null> {
     try {
+      await this.prisma.accountLoginLog.create({
+        data: {
+          accountId: admin.id,
+          ipAddress: ip,
+          browser: browser,
+          geoIp: geoIp,
+        },
+      });
       const generatedTokens = await this.generateTokens(admin.id);
       if (generatedTokens) {
         return generatedTokens;

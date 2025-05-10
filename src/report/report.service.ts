@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import * as moment from 'moment';
 
 @Injectable()
 export class ReportService {
@@ -138,32 +139,195 @@ export class ReportService {
     }
   }
 
-  fetchFacultyPublication() {
+  private generateColorFromCode(code: string): string {
+    // 1) Compute a simple integer hash:
+    let hash = 0;
+    for (let i = 0; i < code.length; i++) {
+      hash = code.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // 2) Golden ratio constant:
+    const goldenRatioConjugate = 0.618033988749895;
+
+    // 3) Multiply hash by φ, take fractional part in [0,1):
+    let frac = (hash * goldenRatioConjugate) % 1;
+    if (frac < 0) frac += 1;
+
+    // 4) Map that to the blue hue range [200°,240°):
+    const hueStart = 200;
+    const hueEnd = 240;
+    const hue = hueStart + frac * (hueEnd - hueStart);
+
+    // 5) Return a vivid HSL blue:
+    return `hsl(${hue.toFixed(1)}, 70%, 55%)`;
+  }
+
+  async fetchFacultyArticleStatus(eventId: string) {
     try {
-      // // 1. Group articles by eventId and facultyId with counts
-      // const articleCounts = await this.prisma.article.groupBy({
-      //   by: ['eventId', 'facultyId'],
-      //   _count: {
-      //     id: true,
-      //   },
-      // });
-      // // 2. Calculate total articles per event
-      // const totalByEvent: Record<string, number> = {};
-      // articleCounts.forEach(({ eventId, _count }: { eventId: string }) => {
-      //   totalByEvent[eventId] = (totalByEvent[eventId] || 0) + _count.id;
-      // });
-      // // 3. Add percentages
-      // const result = articleCounts.map(({ eventId, facultyId, _count }) => {
-      //   const total = totalByEvent[eventId];
-      //   const percentage = total > 0 ? (_count.id / total) * 100 : 0;
-      //   return {
-      //     eventId,
-      //     facultyId,
-      //     contributionCount: _count.id,
-      //     contributionPercentage: Number(percentage.toFixed(2)),
-      //   };
-      // });
-      // return result;
+      const fourteenDaysAgo = moment().subtract(14, 'days').toDate();
+
+      const faculties = await this.prisma.faculty.findMany({
+        select: { name: true },
+      });
+
+      const pendingArticles = await this.prisma.article.findMany({
+        where: {
+          AND: [
+            {
+              eventId,
+            },
+            {
+              ArticleStatus: 'PENDING',
+            },
+          ],
+        },
+        select: {
+          createdAt: true,
+          Faculty: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      const grouped = new Map<
+        string,
+        { faculty: string; noCmt: number; noCmtOverDue: number }
+      >();
+
+      for (const article of pendingArticles) {
+        const facultyName = article.Faculty?.name ?? 'Unknown Faculty';
+        const isOverdue = moment(article.createdAt).isBefore(fourteenDaysAgo);
+
+        if (!grouped.has(facultyName)) {
+          grouped.set(facultyName, {
+            faculty: facultyName,
+            noCmt: 0,
+            noCmtOverDue: 0,
+          });
+        }
+
+        const group = grouped.get(facultyName)!;
+        group.noCmt += 1;
+        if (isOverdue) group.noCmtOverDue += 1;
+      }
+
+      for (const faculty of faculties) {
+        if (!grouped.has(faculty.name)) {
+          grouped.set(faculty.name, {
+            faculty: faculty.name,
+            noCmt: 0,
+            noCmtOverDue: 0,
+          });
+        }
+      }
+
+      return Array.from(grouped.values());
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Error fetching article list',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async fetchFacultyPublication(eventId: string) {
+    try {
+      const articles = await this.prisma.article.findMany({
+        where: {
+          AND: [
+            {
+              ArticleStatus: {
+                notIn: [
+                  'CANCELLED',
+                  'DRAFT',
+                  'NEED_ACTION',
+                  'PERMANENTLY_DELETED',
+                  'REJECTED',
+                ],
+              },
+            },
+            {
+              eventId,
+            },
+          ],
+        },
+        select: {
+          facultyId: true,
+          uploadedById: true,
+        },
+      });
+
+      const facultyStats = new Map<
+        string,
+        { contributions: number; contributorSet: Set<string> }
+      >();
+
+      for (const article of articles) {
+        const facultyId = article.facultyId;
+        if (!facultyId) continue;
+
+        if (!facultyStats.has(facultyId)) {
+          facultyStats.set(facultyId, {
+            contributions: 0,
+            contributorSet: new Set(),
+          });
+        }
+
+        const stats = facultyStats.get(facultyId)!;
+        stats.contributions += 1;
+        if (article.uploadedById) {
+          stats.contributorSet.add(article.uploadedById);
+        }
+      }
+
+      const faculties = await this.prisma.faculty.findMany({
+        select: {
+          id: true,
+          facultyCode: true,
+          name: true,
+        },
+      });
+
+      const chartData: {
+        faculty: string;
+        contributions: number;
+        contributor: number;
+        fill: string;
+      }[] = [];
+
+      const facultyMap: Record<
+        string,
+        {
+          label: string;
+          color: string;
+        }
+      > = {};
+
+      for (const faculty of faculties) {
+        const { id, facultyCode, name } = faculty;
+        const stat = facultyStats.get(id);
+        const fill = this.generateColorFromCode(facultyCode);
+
+        chartData.push({
+          faculty: facultyCode,
+          contributions: stat?.contributions ?? 0,
+          contributor: stat?.contributorSet.size ?? 0,
+          fill,
+        });
+
+        facultyMap[facultyCode] = {
+          label: name,
+          color: fill,
+        };
+      }
+
+      return {
+        chartData,
+        facultyMap,
+      };
     } catch (err) {
       console.log(err);
       throw new HttpException(

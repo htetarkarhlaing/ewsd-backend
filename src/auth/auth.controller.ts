@@ -20,6 +20,7 @@ import { studentJWTAuthGuard } from './guards/jwt-student-auth.guard';
 import { GuestService } from './guest.service';
 import { GuestLocalAuthGuard } from './guards/local-guest-auth.guard';
 import { guestJWTAuthGuard } from './guards/jwt-guest-auth.guard';
+import * as geoip from 'geoip-lite';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -43,8 +44,18 @@ export class AuthController {
   async adminLogin(@Req() req: Request) {
     try {
       const admin = req.user as Omit<Account, 'password'>;
+      const userAgent = req.useragent;
+      const ip =
+        (req.headers['x-forwarded-for'] as string) ||
+        (req.socket.remoteAddress as string);
+      const geo = geoip.lookup(ip);
 
-      const adminCredentials = await this.adminService.loginService(admin);
+      const adminCredentials = await this.adminService.loginService(
+        admin,
+        ip,
+        userAgent?.browser || 'un-detectable',
+        geo,
+      );
       return {
         data: adminCredentials,
         message: 'Admin login successful',
@@ -96,10 +107,19 @@ export class AuthController {
   @Post('student/login')
   async studentLogin(@Req() req: Request) {
     try {
+      const userAgent = req.useragent;
+      const ip =
+        (req.headers['x-forwarded-for'] as string) ||
+        (req.socket.remoteAddress as string);
+      const geo = geoip.lookup(ip);
       const student = req.user as Omit<Account, 'password'>;
 
-      const studentCredentials =
-        await this.studentService.loginService(student);
+      const studentCredentials = await this.studentService.loginService(
+        student,
+        ip,
+        userAgent?.browser || 'un-detectable',
+        geo,
+      );
       return {
         data: studentCredentials,
         message: 'Student login successful',

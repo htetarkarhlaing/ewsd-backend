@@ -1,4 +1,9 @@
-import { Module } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
@@ -17,6 +22,7 @@ import { ArticleModule } from './article/article.module';
 import { ChatModule } from './chat/chat.module';
 import { NotificationModule } from './notification/notification.module';
 import { ReportModule } from './report/report.module';
+import { UserAgentMiddleware } from './helper/UserAgentMiddleware';
 
 @Module({
   imports: [
@@ -57,4 +63,10 @@ import { ReportModule } from './report/report.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(UserAgentMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}

@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AdminSocketGateway } from 'src/socket/admin.gateway';
 import { StudentSocketGateway } from 'src/socket/student.gateway';
+import { orderBy } from 'lodash';
 
 @Injectable()
 export class ChatService {
@@ -54,7 +55,7 @@ export class ChatService {
     chatRoomId: string,
     fetcherId: string,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 50,
   ) {
     try {
       const skip = (page - 1) * parseInt(limit.toString());
@@ -62,7 +63,7 @@ export class ChatService {
       const [data, totalCount, unreadCount] = await Promise.all([
         this.prisma.chatMessage.findMany({
           where: { chatRoomId },
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
           skip,
           take: parseInt(limit.toString()),
         }),
@@ -92,8 +93,14 @@ export class ChatService {
 
       const hasMore = skip + data.length < totalCount;
 
-      return {
+      const sorted = orderBy(
         data,
+        [(item) => new Date(item.createdAt)],
+        ['asc'],
+      );
+
+      return {
+        data: sorted,
         totalCount,
         unreadCount,
         hasMore,
